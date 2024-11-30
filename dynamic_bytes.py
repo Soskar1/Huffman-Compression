@@ -1,4 +1,6 @@
+from __future__ import annotations
 from typing import List
+import copy
 
 class DynamicBytes(object):
     def __init__(self):
@@ -14,10 +16,10 @@ class DynamicBytes(object):
     def GetBytes(self) -> List[int]:
         return [byte for byte in self.m_bytes if not self.IsEmpty(byte)]
     
-    def Increment(self) -> None:
+    def Increment(self):
         self.m_bytes[self.m_notFilledByteIndex] += 1
         
-    def Shift(self) -> None:
+    def Shift(self):
         byte = self.m_bytes[self.m_notFilledByteIndex]
         
         if self.IsByteFilled(byte):
@@ -27,6 +29,12 @@ class DynamicBytes(object):
         
         byte = byte << 1
         self.m_bytes[self.m_notFilledByteIndex] = byte
+    
+    def DeepCopy(self) -> DynamicBytes:
+        newBytes = DynamicBytes()
+        newBytes.m_bytes = copy.deepcopy(self.m_bytes)
+        newBytes.m_notFilledByteIndex = self.m_notFilledByteIndex
+        return newBytes
     
     def __str__(self):
         byteStr: str = ""

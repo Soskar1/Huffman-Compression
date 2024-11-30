@@ -1,4 +1,5 @@
 from binary_tree import Node
+from dynamic_bytes import DynamicBytes
 from typing import Dict, List
 
 def ConstructHuffmanTree(bytePopularity: Dict[str, int]) -> Node:
@@ -28,14 +29,19 @@ def ConstructHuffmanTree(bytePopularity: Dict[str, int]) -> Node:
     root: Node = leafs.pop(0)
     return root
 
-def ConstructHuffmanCode(node: Node, coding: Dict[str, bytearray], currentCode: bytearray = bytearray([1])) -> None:
+def ConstructHuffmanCode(node: Node, coding: Dict[str, DynamicBytes], currentCode: DynamicBytes = DynamicBytes()) -> None:
     left, right = node.m_left, node.m_right
     
     if left != None:
-        ConstructHuffmanCode(left, coding, currentCode[0] << 1)
+        newCode = currentCode.DeepCopy()
+        newCode.Shift()
+        ConstructHuffmanCode(left, coding, newCode)
     
     if right != None:
-        ConstructHuffmanCode(right, coding, (currentCode[0] << 1) + 1)
+        newCode = currentCode.DeepCopy()
+        newCode.Shift()
+        newCode.Increment()
+        ConstructHuffmanCode(right, coding, newCode)
     
     if node.IsLeaf(): 
         coding[node.m_bytes] = currentCode
@@ -99,7 +105,7 @@ if __name__ == "__main__":
     }
     
     root: Node = ConstructHuffmanTree(bytePopularity)
-    huffmanCode: Dict[str, bytearray] = {}
+    huffmanCode: Dict[str, int] = {}
     ConstructHuffmanCode(root, huffmanCode)
     
     for byte in sorted(huffmanCode.keys()):
