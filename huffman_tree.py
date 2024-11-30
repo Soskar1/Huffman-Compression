@@ -28,8 +28,17 @@ def ConstructHuffmanTree(bytePopularity: Dict[str, int]) -> Node:
     root: Node = leafs.pop(0)
     return root
 
-def Encode(root: Node) -> Dict[str, int]:
-    pass
+def ConstructHuffmanCode(node: Node, coding: Dict[str, int], currentCode: chr = 0) -> None:
+    left, right = node.m_left, node.m_right
+    
+    if left != None:
+        ConstructHuffmanCode(left, coding, currentCode << 1)
+    
+    if right != None:
+        ConstructHuffmanCode(right, coding, (currentCode << 1) + 1)
+    
+    if node.IsLeaf(): 
+        coding[node.m_bytes] = currentCode
 
 if __name__ == "__main__":
     bytePopularity: Dict[str, int] = {
@@ -40,3 +49,9 @@ if __name__ == "__main__":
     }
     
     root: Node = ConstructHuffmanTree(bytePopularity)
+    huffmanCode: Dict[str, int] = {}
+    ConstructHuffmanCode(root, huffmanCode)
+    
+    for item in huffmanCode.items():
+        byte, code = item[0], item[1]
+        print(f"{byte}: {bin(code)}")
