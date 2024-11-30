@@ -28,14 +28,14 @@ def ConstructHuffmanTree(bytePopularity: Dict[str, int]) -> Node:
     root: Node = leafs.pop(0)
     return root
 
-def ConstructHuffmanCode(node: Node, coding: Dict[str, int], currentCode: chr = 1) -> None:
+def ConstructHuffmanCode(node: Node, coding: Dict[str, bytearray], currentCode: bytearray = bytearray([1])) -> None:
     left, right = node.m_left, node.m_right
     
     if left != None:
-        ConstructHuffmanCode(left, coding, currentCode << 1)
+        ConstructHuffmanCode(left, coding, currentCode[0] << 1)
     
     if right != None:
-        ConstructHuffmanCode(right, coding, (currentCode << 1) + 1)
+        ConstructHuffmanCode(right, coding, (currentCode[0] << 1) + 1)
     
     if node.IsLeaf(): 
         coding[node.m_bytes] = currentCode
@@ -66,16 +66,42 @@ if __name__ == "__main__":
         "U": 6,
         "V": 1,
         "T": 2,
-        # "W": 6,
-        # "X": 9,
-        # "Y": 8,
-        # "Z": 1
+        "W": 6,
+        "X": 9,
+        "Y": 8,
+        "Z": 1,
+        "a": 1,
+        "b": 1,
+        "c": 1,
+        "d": 1,
+        "e": 1,
+        "f": 1,
+        "g": 1,
+        "h": 1,
+        "i": 1,
+        "j": 1,
+        "k": 1,
+        "l": 1,
+        "m": 1,
+        "n": 1,
+        "o": 1,
+        "p": 1,
+        "q": 1,
+        "r": 1,
+        "s": 1,
+        "t": 1,
+        "u": 1,
+        "v": 1,
+        "w": 1,
+        "x": 1,
+        "y": 1,
+        "z": 1,
     }
     
     root: Node = ConstructHuffmanTree(bytePopularity)
-    huffmanCode: Dict[str, int] = {}
+    huffmanCode: Dict[str, bytearray] = {}
     ConstructHuffmanCode(root, huffmanCode)
     
     for byte in sorted(huffmanCode.keys()):
         code = huffmanCode[byte]
-        print(f"{byte}: {bin(code)}")
+        print(f"{byte}: {code}")
