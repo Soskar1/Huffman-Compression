@@ -1,12 +1,13 @@
 import os
+from typing import Dict, List
 
 class ByteAnalyzer(object):
     def __init__(self, fileName: str, bufferSize: int = 8192):
         self.m_bufferSize = bufferSize
         self.m_fileName = fileName
 
-    def Run(self) -> None:
-        bytePopularity = {}
+    def Run(self) -> Dict[chr, int]:
+        bytePopularity: Dict[chr, int] = {}
 
         with open(self.m_fileName, "rb") as file:
             while True:
@@ -25,11 +26,11 @@ class ByteAnalyzer(object):
 
         return bytePopularity
 
-def ListFilesRecursive(path: str = '.') -> list:
-    files = []
+def ListFilesRecursive(path: str = '.') -> List[str]:
+    files: List[str] = []
 
     for entry in os.listdir(path):
-        fullPath = os.path.join(path, entry)
+        fullPath: str = os.path.join(path, entry)
         if os.path.isdir(fullPath):
             try:
                 files.extend(ListFilesRecursive(fullPath))
