@@ -6,7 +6,7 @@ class ByteAnalyzer(object):
         self.m_bufferSize = bufferSize
         self.m_fileName = fileName
 
-    def Run(self) -> Dict[chr, int]:
+    def Analyze(self) -> Dict[chr, int]:
         bytePopularity: Dict[chr, int] = {}
 
         with open(self.m_fileName, "rb") as file:
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     for file in files:
         print("Analyzing {0}".format(file))
         analyzer = ByteAnalyzer(file)
-        result = analyzer.Run()
+        result = analyzer.Analyze()
 
         for item in result.items():
             byte, count = item[0], item[1]
