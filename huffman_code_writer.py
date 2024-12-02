@@ -1,12 +1,18 @@
 from dynamic_bytes import DynamicBytes
+from huffman_header import HuffmanHeader
 
 class HuffmanCodeWriter(object):
-    def __init__(self, debug: bool = False):
-        self.m_buffer: bytearray = bytearray()
-        self.m_notFilledByte: chr = 0b0
-        self.m_freeBits: int = 8
+    def __init__(self, header: HuffmanHeader, debug: bool = False):
+        self.m_buffer: bytearray = header.m_header
         self.m_maxBits: int = 8
         self.m_debug: bool = debug
+        
+        if header.m_freeBits == self.m_maxBits:
+            self.m_freeBits: int = 8
+            self.m_notFilledByte: chr = 0b0
+        else:
+            self.m_freeBits: int = header.m_freeBits
+            self.m_notFilledByte: chr = self.m_buffer[len(header.m_header) - 1]
         
     def HasMostLeftBit(self, code: chr) -> bool:
         return code & 0b10000000 == 0b10000000

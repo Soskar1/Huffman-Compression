@@ -27,6 +27,7 @@ def ConstructHuffmanTree(bytePopularity: Dict[str, int]) -> Node:
         leafs.append(newNode)
 
     root: Node = leafs.pop(0)
+    root.m_isRoot = True
     return root
 
 def ConstructHuffmanCode(node: Node, coding: Dict[str, DynamicBytes], currentCode: DynamicBytes = DynamicBytes()) -> None:

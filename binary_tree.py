@@ -6,6 +6,7 @@ class Node(object):
         self.m_right: Node = None
         self.m_count: int = count
         self.m_bytes: str = bytes
+        self.m_isRoot: bool = False
 
     def AddRight(self, node: Node) -> None:
         self.m_right = node
@@ -14,7 +15,7 @@ class Node(object):
         self.m_left = node
 
     def IsLeaf(self) -> bool:
-        if (self.m_left == None and self.m_right == None):
+        if self.m_left == None and self.m_right == None:
             return True
         
         return False
