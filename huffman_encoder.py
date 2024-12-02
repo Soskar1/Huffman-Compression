@@ -11,9 +11,9 @@ def main() -> None:
     
     srcFile: str = args.srcFile
     outFile: str = args.outFile
-    srcMaxBufferLength = 1024
-    outMaxBufferLength = 1024
-    debug = False
+    srcMaxBufferLength: int = 1024
+    outMaxBufferLength: int = 1024
+    debug: bool = False
     byteAnalyzer: byte_analyzer.ByteAnalyzer = byte_analyzer.ByteAnalyzer(srcFile)
     
     print(f"Analyzing {srcFile}...")
