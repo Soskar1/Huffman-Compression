@@ -21,20 +21,20 @@ class HuffmanCodeWriter(object):
         return code & 0b1 == 0b1
     
     def WriteCode(self, code: DynamicBytes) -> None:
-        code = code.GetBytes()[0] # TODO: Fix it
-        length: int = self.m_maxBits
+        for codeByte in code.GetBytes():
+            length: int = self.m_maxBits
 
-        while not self.HasMostLeftBit(code):
-            code <<= 1
+            while not self.HasMostLeftBit(codeByte):
+                codeByte <<= 1
+                length -= 1
+
+            codeByte = (codeByte & 0b01111111) << 1
             length -= 1
-            
-        code = (code & 0b01111111) << 1
-        length -= 1
-        
-        if self.m_debug:
-            print(f"{code:08b} with length={length}")
-        
-        self.WriteByte(code, length)
+
+            if self.m_debug:
+                print(f"{codeByte:08b} with length={length}")
+
+            self.WriteByte(codeByte, length)
     
     def WriteByte(self, byte: chr, length: int) -> None:
         if length <= self.m_freeBits:
