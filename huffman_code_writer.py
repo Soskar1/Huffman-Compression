@@ -1,11 +1,12 @@
 from dynamic_bytes import DynamicBytes
 
 class HuffmanCodeWriter(object):
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         self.m_buffer: bytearray = bytearray()
         self.m_notFilledByte: chr = 0b0
-        self.m_freeBits = 8
-        self.m_maxBits = 8
+        self.m_freeBits: int = 8
+        self.m_maxBits: int = 8
+        self.m_debug: bool = debug
         
     def HasMostLeftBit(self, code: chr) -> bool:
         return code & 0b10000000 == 0b10000000
@@ -23,7 +24,10 @@ class HuffmanCodeWriter(object):
             
         code = (code & 0b01111111) << 1
         length -= 1
-        print(f"{code:08b} with length={length}")
+        
+        if self.m_debug:
+            print(f"{code:08b} with length={length}")
+        
         self.WriteByte(code, length)
     
     def WriteByte(self, byte: chr, length: int) -> None:
@@ -32,7 +36,8 @@ class HuffmanCodeWriter(object):
             self.m_notFilledByte |= byte
             self.m_freeBits -= length
             
-            print(f"Not filled byte: {self.m_notFilledByte:08b}. Left bits: {self.m_freeBits}")
+            if self.m_debug:    
+                print(f"Not filled byte: {self.m_notFilledByte:08b}. Left bits: {self.m_freeBits}")
             
             if self.m_freeBits == 0:
                 self.AddByteToBuffer()
@@ -53,8 +58,10 @@ class HuffmanCodeWriter(object):
                 length -= 1
                 
             self.m_notFilledByte |= byte
-            print(f"Not filled byte: {self.m_notFilledByte:08b}. Left bits: 0")
-            print(f"Tmp byte: {tmp:08b}, tmpLength: {tmpLength}")
+            
+            if self.m_debug:
+                print(f"Not filled byte: {self.m_notFilledByte:08b}. Left bits: 0")
+                print(f"Tmp byte: {tmp:08b}, tmpLength: {tmpLength}")
             
             self.AddByteToBuffer()
             
