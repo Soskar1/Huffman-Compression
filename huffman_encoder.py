@@ -1,7 +1,7 @@
 from typing import Dict
 
 import binary_tree, byte_analyzer, dynamic_bytes, huffman_code_writer, huffman_header, huffman_tree
-import argparse, logging, os
+import argparse, logging, os, sys
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -21,6 +21,7 @@ def main() -> None:
         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     logger: logging.Logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
     
     srcMaxBufferLength: int = 1024
     outMaxBufferLength: int = 1024
