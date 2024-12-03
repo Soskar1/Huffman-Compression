@@ -37,14 +37,14 @@ def main() -> None:
     logger.info("Constructing Huffman Code...")
     huffman_tree.ConstructHuffmanCode(huffmanTree, huffmanCode)
     
-    logger.debug("Character | Huffman Code | Popularity | ASCII Code")
+    logger.info("Character | Huffman Code | Popularity | ASCII Code")
     for byte in sorted(huffmanCode.keys()):
         code = huffmanCode[byte]
-        logger.debug(f"{byte} | {code} | {bytePopularity[byte]} | {ord(byte)}")
+        logger.info(f"{byte} | {code} | {bytePopularity[byte]} | {ord(byte)}")
     
     logger.info("Constructing Huffman Header...")
-    huffmanHeader: huffman_header.HuffmanHeader = huffman_header.HuffmanHeader(huffmanTree, logLevel == 1)
-    logger.debug(f"Huffman Header: {huffmanHeader.m_debugHeader}")
+    huffmanHeader: huffman_header.HuffmanHeader = huffman_header.HuffmanHeader(huffmanTree)
+    logger.info(f"Huffman Header: {huffmanHeader.m_debugHeader}")
     
     codeWriter: huffman_code_writer.HuffmanCodeWriter = huffman_code_writer.HuffmanCodeWriter(huffmanHeader)
     
