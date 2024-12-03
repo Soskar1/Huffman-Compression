@@ -3,7 +3,7 @@ from binary_tree import Node
 class HuffmanHeader(object):
     def __init__(self, huffmanTreeRoot: Node):
         self.m_header: bytearray = bytearray()
-        self.m_maxBits = 8
+        self.m_maxBits: int = 8
         self.m_freeBits: int = 8
         self.m_notFilledByte: chr = 0b0
         
