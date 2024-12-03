@@ -7,7 +7,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("srcFile", help = "Path to the source file")
     parser.add_argument("outFile", help = "Path to the out file")
-    parser.add_argument("--debug", "-d", default = False, help = "Turn on debug messages")
+    parser.add_argument("--debug", "-d", action = 'store_true', default = False, help = "Turn on debug messages")
     args = parser.parse_args()
     
     srcFile: str = args.srcFile
@@ -28,20 +28,18 @@ def main() -> None:
     huffman_tree.ConstructHuffmanCode(huffmanTree, huffmanCode)
     
     if debug:
-        print("Huffman Code: ")
+        print("Character | Huffman Code | Popularity | ASCII Code")
         for byte in sorted(huffmanCode.keys()):
             code = huffmanCode[byte]
-            print(f"{byte}: {code}")
+            print(f"{byte} | {code} | {bytePopularity[byte]} | {ord(byte)}")
     
     print("Constructing Huffman Header...")
-    huffmanHeader: huffman_header.HuffmanHeader = huffman_header.HuffmanHeader(huffmanTree)
+    huffmanHeader: huffman_header.HuffmanHeader = huffman_header.HuffmanHeader(huffmanTree, debug = debug)
     
     if debug:
-        print("Huffman Header: ")
-        for byte in huffmanHeader.m_header:
-            print(byte)
+        print(f"Huffman Header: {huffmanHeader.m_debugHeader}")
     
-    codeWriter: huffman_code_writer.HuffmanCodeWriter = huffman_code_writer.HuffmanCodeWriter(huffmanHeader, debug=debug)
+    codeWriter: huffman_code_writer.HuffmanCodeWriter = huffman_code_writer.HuffmanCodeWriter(huffmanHeader, debug = debug)
     
     if os.path.exists(outFile):
         os.remove(outFile)

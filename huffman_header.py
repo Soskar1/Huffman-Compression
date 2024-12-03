@@ -1,11 +1,14 @@
 from binary_tree import Node
 
 class HuffmanHeader(object):
-    def __init__(self, huffmanTreeRoot: Node):
+    def __init__(self, huffmanTreeRoot: Node, debug: bool = False):
         self.m_header: bytearray = bytearray()
         self.m_maxBits: int = 8
         self.m_freeBits: int = 8
         self.m_notFilledByte: chr = 0b0
+
+        self.m_debug: bool = debug
+        self.m_debugHeader: str = ""
         
         self.TraverseHuffmanTree(huffmanTreeRoot)
         if self.m_notFilledByte != 0b0:
@@ -33,8 +36,14 @@ class HuffmanHeader(object):
                 self.AppendByte(ord(byte))
             
     def AppendBit(self, bit: bool) -> None:
+        if bit == 0:
+            if self.m_debug:
+                self.m_debugHeader += '0'
+        
         if bit == 1:
             self.Append1Bit()
+            if self.m_debug:
+                self.m_debugHeader += '1'
         
         self.m_freeBits -= 1
         if self.m_freeBits == 0:
@@ -59,6 +68,9 @@ class HuffmanHeader(object):
             self.m_notFilledByte |= 0b1
     
     def AppendByte(self, byte: chr) -> None:
+        if self.m_debug:
+            self.m_debugHeader += chr(byte)
+
         if self.m_freeBits == self.m_maxBits:
             self.m_header.append(byte)
         else:    
