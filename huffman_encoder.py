@@ -53,15 +53,19 @@ def main() -> None:
     
     logger.info("Encoding...")
     with open(srcFile, "rb") as src:
-        readBuffer = src.read(srcMaxBufferLength)
-        
-        for byte in readBuffer:
-            codeWriter.WriteCode(huffmanCode[chr(byte)])
-            
-            if len(codeWriter.m_buffer) >= outMaxBufferLength:
-                with open(outFile, "ab") as out:
-                    out.write(codeWriter.m_buffer)
-                    codeWriter.m_buffer = ""
+        while True:
+            readBuffer = src.read(srcMaxBufferLength)
+
+            if (readBuffer == b''):
+                break
+
+            for byte in readBuffer:
+                codeWriter.WriteCode(huffmanCode[chr(byte)])
+
+                if len(codeWriter.m_buffer) >= outMaxBufferLength:
+                    with open(outFile, "ab") as out:
+                        out.write(codeWriter.m_buffer)
+                        codeWriter.m_buffer.clear()
     
     codeWriter.End()
     
