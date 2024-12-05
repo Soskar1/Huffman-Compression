@@ -29,6 +29,9 @@ def main():
 
         logger.info("Decoding Huffman Tree...")
 
+        while True:
+            readBuffer: bytes = src.read(srcMaxBufferLength)
+
     # Construct Huffman Tree
 
     # Create Huffman Code dictionary
