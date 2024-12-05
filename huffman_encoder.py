@@ -53,6 +53,12 @@ def main() -> None:
     
     logger.info("Encoding...")
     with open(srcFile, "rb") as src:
+        uniqueCharacters: chr = chr(len(huffmanCode.keys()))
+        logger.info(f"Encoder encountered {ord(uniqueCharacters)} unique characters. Writing to {outFile}")
+
+        with open(outFile, "ab") as out:
+            out.write(uniqueCharacters.encode('ascii'))
+
         while True:
             readBuffer = src.read(srcMaxBufferLength)
 
@@ -64,6 +70,8 @@ def main() -> None:
 
                 if len(codeWriter.m_buffer) >= outMaxBufferLength:
                     with open(outFile, "ab") as out:
+                        logger.debug(f"Write buffer is full! Adding content to {outFile}")
+
                         out.write(codeWriter.m_buffer)
                         codeWriter.m_buffer.clear()
     
