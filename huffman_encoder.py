@@ -53,11 +53,11 @@ def main() -> None:
     
     logger.info("Encoding...")
     with open(srcFile, "rb") as src:
-        uniqueCharacters: chr = chr(len(huffmanCode.keys()))
+        uniqueCharacters: chr = chr(len(huffmanCode.keys()) - 1)
         logger.info(f"Encoder encountered {ord(uniqueCharacters)} unique characters. Writing to {outFile}")
 
         with open(outFile, "ab") as out:
-            out.write(uniqueCharacters.encode('ascii'))
+            out.write(uniqueCharacters.encode('latin1'))
 
         while True:
             readBuffer = src.read(srcMaxBufferLength)
