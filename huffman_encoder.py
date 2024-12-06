@@ -54,7 +54,7 @@ def main() -> None:
     logger.info("Encoding...")
     with open(srcFile, "rb") as src:
         uniqueCharacters: chr = chr(len(huffmanCode.keys()) - 1)
-        logger.info(f"Encoder encountered {ord(uniqueCharacters)} unique characters. Writing to {outFile}")
+        logger.info(f"Encoder encountered {ord(uniqueCharacters) + 1} unique characters. Writing to {outFile}")
 
         with open(outFile, "ab") as out:
             out.write(uniqueCharacters.encode('latin1'))
