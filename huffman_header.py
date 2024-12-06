@@ -19,7 +19,7 @@ class HuffmanHeader(object):
         self.m_freeBits = self.m_maxBits
 
     def TraverseHuffmanTree(self, node: Node) -> None:
-        if not node.IsLeaf() and not node.m_isRoot:
+        if not node.IsLeaf() and node.m_parent != None:
             self.AppendBit(0)
         
         if node.m_left != None:

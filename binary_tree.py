@@ -7,7 +7,6 @@ class Node(object):
         self.m_parent: Node = None
         self.m_count: int = count
         self.m_bytes: str = bytes
-        self.m_isRoot: bool = False
 
     def AddRight(self, node: Node) -> None:
         self.m_right = node

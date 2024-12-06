@@ -69,7 +69,9 @@ class HuffmanDecoder(object):
                         currentNode.AddLeft(newNode)
                     elif currentNode.m_right == None:
                         currentNode.AddRight(newNode)
-                        currentNode = currentNode.m_parent
+                        while currentNode.m_left != None and currentNode.m_right != None and currentNode.m_parent != None:
+                            currentNode.m_bytes = currentNode.m_left.m_bytes + currentNode.m_right.m_bytes
+                            currentNode = currentNode.m_parent
                 elif status == -1: # Reached end of buffer. Update buffer
                     self.m_logger.debug("ReadBit. Updating buffer")
                     if not self.UpdateReadBuffer(src):
