@@ -1,6 +1,7 @@
-import argparse, logging, os, sys
+from typing import Dict
 
-import binary_tree, byte_reader
+import binary_tree, byte_reader, dynamic_bytes, huffman_tree
+import argparse, logging, sys
 
 class HuffmanDecoder(object):
     def __init__(self, srcFilePath: str, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
@@ -10,9 +11,14 @@ class HuffmanDecoder(object):
         
         self.m_byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
         self.m_huffmanTreeRootNode: binary_tree.Node = binary_tree.Node()
+        self.m_huffmanCode: Dict[str, dynamic_bytes.DynamicBytes] = {}
 
         self.m_logger: logging.Logger = logging.getLogger(__name__)
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    def Run(self) -> None:
+        self.DecodeHuffmanTree()
+        self.ConstructHuffmanCode()
 
     def UpdateReadBuffer(self, src) -> bool:
         buffer: bytes = src.read(self.m_srcMaxBufferLength)
@@ -80,6 +86,15 @@ class HuffmanDecoder(object):
         
         self.m_logger.info(f"Decoded Huffman Tree: {huffmanTreeDebug}")
 
+    def ConstructHuffmanCode(self) -> None:
+        self.m_logger.info("Constructing Huffman Code...")
+        huffman_tree.ConstructHuffmanCode(self.m_huffmanTreeRootNode, self.m_huffmanCode)
+        
+        self.m_logger.info("Character | Huffman Code | ASCII Code")
+        for byte in sorted(self.m_huffmanCode.keys()):
+            code = self.m_huffmanCodeself.m_huffmanCode[byte]
+            self.m_logger.info(f"{byte} | {code} | {ord(byte)}")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("srcFile", help = "Path to the source file")
@@ -98,11 +113,7 @@ def main():
         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     decoder: HuffmanDecoder = HuffmanDecoder(srcFile)
-    decoder.DecodeHuffmanTree()
-
-    # Create Huffman Code dictionary
-
-    # Decode
+    decoder.Run()
 
 if __name__ == "__main__":
     main()
