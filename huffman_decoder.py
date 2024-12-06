@@ -1,5 +1,7 @@
 import argparse, logging, os, sys
 
+import binary_tree, byte_reader
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("srcFile", help = "Path to the source file")
@@ -28,9 +30,25 @@ def main():
         logger.info(f"Decoder knows that file contains {uniqueCharacterCount} unique characters")
 
         logger.info("Decoding Huffman Tree...")
+        byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
+        rootNode: binary_tree.Node = binary_tree.Node()
 
-        while True:
+        while uniqueCharacterCount > 0:
             readBuffer: bytes = src.read(srcMaxBufferLength)
+
+            if readBuffer == b'':
+                logger.error("HUFFMAN TREE DECODING: readBuffer reached the end")
+            assert readBuffer != b''
+
+            byteReader.SetBuffer(readBuffer)
+            
+            status: int = byteReader.ReadBit()
+            if status == 0: # Construct empty Node
+                pass
+            elif status == 1: # Construct new Node with next byte value
+                pass
+            elif status == -1: # Reached end of buffer. Update buffer
+                pass
 
     # Construct Huffman Tree
 

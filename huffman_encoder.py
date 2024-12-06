@@ -62,7 +62,7 @@ def main() -> None:
         while True:
             readBuffer = src.read(srcMaxBufferLength)
 
-            if (readBuffer == b''):
+            if readBuffer == b'':
                 break
 
             for byte in readBuffer:

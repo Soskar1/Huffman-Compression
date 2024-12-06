@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 class Node(object):
-    def __init__(self, bytes: str, count: int):
+    def __init__(self, bytes: str = "", count: int = 0):
         self.m_left: Node = None
         self.m_right: Node = None
         self.m_count: int = count
