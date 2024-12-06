@@ -10,7 +10,7 @@ class HuffmanHeader(object):
         self.m_debugHeader: str = ""
         
         self.TraverseHuffmanTree(huffmanTreeRoot)
-        if self.m_notFilledByte != 0b0:
+        if self.m_freeBits != self.m_maxBits:
             self.CreateByte()
         
     def CreateByte(self) -> None:
