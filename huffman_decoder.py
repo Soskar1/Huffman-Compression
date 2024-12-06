@@ -92,7 +92,7 @@ class HuffmanDecoder(object):
         
         self.m_logger.info("Character | Huffman Code | ASCII Code")
         for byte in sorted(self.m_huffmanCode.keys()):
-            code = self.m_huffmanCodeself.m_huffmanCode[byte]
+            code = self.m_huffmanCode[byte]
             self.m_logger.info(f"{byte} | {code} | {ord(byte)}")
 
 def main():
