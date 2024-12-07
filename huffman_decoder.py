@@ -1,6 +1,6 @@
 from typing import Dict
 
-import binary_tree, byte_reader, dynamic_bytes, huffman_tree
+import binary_tree, byte_reader, dynamic_bytes
 import argparse, io, logging, sys
 
 class HuffmanDecoder(object):

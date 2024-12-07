@@ -1,6 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
-import binary_tree, byte_analyzer, dynamic_bytes, huffman_code_writer, huffman_header, huffman_tree
+import binary_tree, byte_analyzer, dynamic_bytes, huffman_code_writer, huffman_header
 import argparse, io, logging, sys
 
 class HuffmanEncoder(object):
@@ -21,7 +21,15 @@ class HuffmanEncoder(object):
     def Run(self) -> None:
         self.AnalyzeSourceFile()
         self.ConstructHuffmanTree()
+
+        self.m_logger.info("Constructing Huffman Code...")
         self.ConstructHuffmanCode()
+
+        self.m_logger.info("Character | Huffman Code | Popularity | ASCII Code")
+        for byte in sorted(self.m_huffmanCode.keys()):
+            code = self.m_huffmanCode[byte]
+            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]} | {ord(byte)}")
+
         self.Encode()
 
     def AnalyzeSourceFile(self) -> None:
@@ -30,16 +38,48 @@ class HuffmanEncoder(object):
 
     def ConstructHuffmanTree(self) -> None:
         self.m_logger.info("Constructing Huffman Tree...")
-        self.m_huffmanTreeRootNode = huffman_tree.ConstructHuffmanTree(self.m_bytePopularity)
 
-    def ConstructHuffmanCode(self) -> None:
-        self.m_logger.info("Constructing Huffman Code...")
-        huffman_tree.ConstructHuffmanCode(self.m_huffmanTreeRootNode, self.m_huffmanCode)
+        leafs: List[binary_tree.Node] = []
 
-        self.m_logger.info("Character | Huffman Code | Popularity | ASCII Code")
-        for byte in sorted(self.m_huffmanCode.keys()):
-            code = self.m_huffmanCode[byte]
-            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]} | {ord(byte)}")
+        for item in self.m_bytePopularity.items():
+            byte, count = item[0], item[1]
+            node: binary_tree.Node = binary_tree.Node(byte, count)
+
+            leafs.append(node)
+
+        while len(leafs) > 1:
+            leafs = sorted(leafs, key = lambda leaf: leaf.m_count)
+
+            left: binary_tree.Node = leafs.pop(0)
+            right: binary_tree.Node = leafs.pop(0)
+
+            newByte: str = left.m_bytes + right.m_bytes
+            newCount: int = left.m_count + right.m_count
+
+            newNode: binary_tree.Node = binary_tree.Node(newByte, newCount)
+            newNode.AddLeft(left)
+            newNode.AddRight(right)
+
+            leafs.append(newNode)
+
+        self.m_huffmanTreeRootNode = leafs.pop(0)
+
+    def ConstructHuffmanCode(self, node: binary_tree.Node, currentCode: dynamic_bytes.DynamicBytes = dynamic_bytes.DynamicBytes()) -> None:
+        left, right = node.m_left, node.m_right
+    
+        if left != None:
+            newCode = currentCode.DeepCopy()
+            newCode.Shift()
+            self.ConstructHuffmanCode(left, newCode)
+
+        if right != None:
+            newCode = currentCode.DeepCopy()
+            newCode.Shift()
+            newCode.Increment()
+            self.ConstructHuffmanCode(right, newCode)
+
+        if node.IsLeaf(): 
+            self.m_huffmanCode[node.m_bytes] = currentCode
 
     def Encode(self) -> None:
         self.m_logger.info("Constructing Huffman Header...")
