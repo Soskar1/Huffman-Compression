@@ -21,7 +21,7 @@ class ByteReader(object):
         return self.m_currentByteIndex + 1 <= len(self.m_buffer) - 1
     
     def IsReachedEndOfBuffer(self) -> bool:
-        return self.m_currentByteIndex < len(self.m_buffer)
+        return self.m_currentByteIndex >= len(self.m_buffer) - 1
 
     def Next(self) -> bool:
         if self.DoesNextByteExist():
@@ -31,7 +31,7 @@ class ByteReader(object):
         
         return False
 
-    def ReadBit(self) -> bool | ByteReaderErrorCodes:
+    def ReadBit(self) -> int | ByteReaderErrorCodes:
         if self.m_leftToReadBits == 0:
             if not self.Next():
                 self.m_logger.debug(f"ReadBit {ByteReaderErrorCodes.END_OF_BUFFER}")
@@ -59,7 +59,7 @@ class ByteReader(object):
             result = self.m_currentByte & 0b1 == 0b1
         
         self.m_leftToReadBits -= 1
-        return result
+        return int(result)
 
     def ReadByte(self) -> int | ByteReaderErrorCodes:
         if self.m_leftToReadBits == 0:

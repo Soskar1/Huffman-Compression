@@ -8,7 +8,6 @@ class HuffmanDecoder(object):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
         self.m_srcFile: io.BufferedReader = None
-        self.m_outFile = None
 
         self.m_srcMaxBufferLength: int = srcMaxBufferLength
         self.m_outMaxBufferLength: int = outMaxBufferLength
@@ -36,11 +35,14 @@ class HuffmanDecoder(object):
         self.m_srcFile.close()
 
     def UpdateReadBuffer(self) -> bool:
+        self.m_logger.debug("Trying to update a read buffer...")
         buffer: bytes = self.m_srcFile.read(self.m_srcMaxBufferLength)
 
         if buffer == b'':
+            self.m_logger.debug("Reached end of file")
             return False
 
+        self.m_logger.debug("Read buffer updated!")
         self.m_byteReader.SetBuffer(buffer)
         return True
 
@@ -113,7 +115,33 @@ class HuffmanDecoder(object):
             self.m_huffmanCode[currentCode] = node.m_bytes
 
     def Decode(self) -> None:
-        pass
+        currentCode: str = ""
+        writeBuffer: str = ""
+
+        self.m_logger.info("Decoding...")
+        with open(self.m_outFilePath, "w") as outFile:
+            while not self.m_byteReader.IsReachedEndOfBuffer() or self.UpdateReadBuffer():
+                status: int = self.m_byteReader.ReadBit()
+
+                if status == -1:
+                    continue
+                
+                currentCode += str(status)
+                if currentCode in self.m_huffmanCode:
+                    toWrite: str = self.m_huffmanCode[currentCode]
+                    writeBuffer += toWrite
+                    currentCode = ""
+
+                    if len(writeBuffer) > self.m_outMaxBufferLength:
+                        self.m_logger.debug(f"Write buffer exceeds max buffer length limit! Writing to {self.m_outFilePath}...")
+                        outFile.write(writeBuffer)
+                        writeBuffer = ""
+
+            if len(writeBuffer) > 0:
+                outFile.write(writeBuffer)
+                writeBuffer = ""
+
+        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}")
 
 def main():
     parser = argparse.ArgumentParser()
