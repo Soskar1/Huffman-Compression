@@ -1,6 +1,6 @@
 from typing import Dict
 
-import binary_tree, byte_reader, dynamic_bytes
+import binary_tree, byte_reader
 import argparse, io, logging, sys
 
 class HuffmanDecoder(object):
@@ -14,7 +14,7 @@ class HuffmanDecoder(object):
         
         self.m_byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
         self.m_huffmanTreeRootNode: binary_tree.Node = binary_tree.Node()
-        self.m_huffmanCode: Dict[str, dynamic_bytes.DynamicBytes] = {}
+        self.m_huffmanCode: Dict[str, str] = {}
 
         self.m_logger: logging.Logger = logging.getLogger(__name__)
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -31,7 +31,7 @@ class HuffmanDecoder(object):
             byte = self.m_huffmanCode[code]
             self.m_logger.info(f"{code} | {byte} | {ord(byte)}")
 
-        # self.Decode()
+        self.Decode()
         self.m_srcFile.close()
 
     def UpdateReadBuffer(self) -> bool:

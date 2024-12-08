@@ -134,7 +134,9 @@ class HuffmanEncoder(object):
                     break
 
                 for byte in readBuffer:
-                    byteWriter.WriteByte(ord(byte))
+                    code = self.m_huffmanCode[byte]
+                    for bit in code:
+                        byteWriter.WriteBit(int(bit))
 
                     if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
                         self.m_logger.debug(f"ByteWriter buffer filled while encoding {self.m_srcFilePath}! Writing content to {self.m_outFilePath}")
