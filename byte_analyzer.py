@@ -1,71 +1,45 @@
-import os
-from typing import Dict, List
+from typing import Dict
+
+import byte_reader
+import io
 
 class ByteAnalyzer(object):
-    def __init__(self, fileName: str, bufferSize: int = 102400):
-        self.m_bufferSize = bufferSize
-        self.m_fileName = fileName
+    def __init__(self, fileName: str, processBits: int, bufferSize: int = 1024):
+        self.m_fileName: str = fileName
+        self.m_bufferSize: int = bufferSize
+        self.m_processBits: int = processBits
 
-    def Analyze(self) -> Dict[chr, int]:
-        bytePopularity: Dict[chr, int] = {}
+    def Analyze(self) -> Dict[str, int]:
+        bytePopularity: Dict[str, int] = {}
+        byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
+        
+        def UpdateBuffer(srcFile: io.BufferedReader) -> bool:
+            buffer: bytes = srcFile.read(self.m_bufferSize)
 
-        with open(self.m_fileName, "rb") as file:
-            while True:
-                buffer = file.read(self.m_bufferSize)
+            if buffer == b'':
+                return False
+
+            byteReader.SetBuffer(buffer)
+            return True
+
+        with open(self.m_fileName, "rb") as srcFile:
+            while byteReader.CanRead() or UpdateBuffer(srcFile):
+                byteToAdd: str = ""
+                if self.m_processBits % 8 == 0:
+                    for _ in range((int)(self.m_processBits / 8)):
+                        byte: int = byteReader.ReadByte()
+                        byteToAdd += chr(byte)
+                elif self.m_processBits / 8 > 0:
+                    byte: int = byteReader.ReadByte()
+                    # TODO: read other bits
+                else:
+                    # TODO: read bits
+                    pass
                 
-                if (buffer == b''):
-                    break
+                if byteToAdd not in bytePopularity:
+                    bytePopularity[byteToAdd] = 0
                 
-                for byte in buffer:
-                    byte = chr(byte)
-
-                    if byte not in bytePopularity:
-                        bytePopularity[byte] = 0
-                    
-                    bytePopularity[byte] += 1
+                bytePopularity[byteToAdd] += 1
+                byteToAdd = ""
 
         return bytePopularity
-
-def ListFilesRecursive(path: str = '.') -> List[str]:
-    files: List[str] = []
-
-    for entry in os.listdir(path):
-        fullPath: str = os.path.join(path, entry)
-        if os.path.isdir(fullPath):
-            try:
-                files.extend(ListFilesRecursive(fullPath))
-            except:
-                pass
-        else:
-            print("Appending {0}".format(fullPath))
-            files.append(fullPath)
-
-    return files
-
-
-if __name__ == "__main__":
-    files = ListFilesRecursive("For analyzing\\")
-    bytePopularity = {}
-    totalBytes = 0
-
-    for file in files:
-        print("Analyzing {0}".format(file))
-        analyzer = ByteAnalyzer(file)
-        result = analyzer.Analyze()
-
-        for item in result.items():
-            byte, count = item[0], item[1]
-            if byte in bytePopularity:
-                bytePopularity[byte] += count
-            else:
-                bytePopularity[byte] = count
-
-            totalBytes += count
-
-    print("==========================================")
-    print("Result:\n{0}MB read\n{1} unique characters".format(totalBytes / 1000000, len(bytePopularity)))
-    print("==========================================")
-    bytePopularity = dict(sorted(bytePopularity.items(), key=lambda item: item[1], reverse=True))
-
-    for byte in bytePopularity.keys():
-        print("{0} ({1} | {2:08b}): {3} {4}%".format(byte, ord(byte), ord(byte), bytePopularity[byte], bytePopularity[byte] / totalBytes * 100))

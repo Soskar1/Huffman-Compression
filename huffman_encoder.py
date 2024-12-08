@@ -4,10 +4,11 @@ import binary_tree, byte_analyzer, byte_writer, file_compression_config
 import argparse, io, logging, sys, time
 
 class HuffmanEncoder(object):
-    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 102400, outMaxBufferLength: int = 102400):
+    def __init__(self, srcFilePath: str, outFilePath: str, processBits: int, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
 
+        self.m_processBits: int = processBits
         self.m_srcMaxBufferLength: int = srcMaxBufferLength
         self.m_outMaxBufferLength: int = outMaxBufferLength
 
@@ -45,7 +46,7 @@ class HuffmanEncoder(object):
 
     def AnalyzeSourceFile(self) -> None:
         self.m_logger.info(f"Analyzing {self.m_srcFilePath}...")
-        self.m_bytePopularity = byte_analyzer.ByteAnalyzer(self.m_srcFilePath).Analyze()
+        self.m_bytePopularity = byte_analyzer.ByteAnalyzer(self.m_srcFilePath, self.m_processBits).Analyze()
 
     def ConstructHuffmanTree(self) -> None:
         self.m_logger.info("Constructing Huffman Tree...")
@@ -178,20 +179,22 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("srcFile", help = "Path to the source file")
     parser.add_argument("outFile", help = "Path to the out file")
-    parser.add_argument("--logLevel", type = int, default = 2, help = "To configure logging messages. 1 - DEBUG, 2 - INFO, 3 - WARNING, 4 - ERROR, 5 - CRITICAL")
+    parser.add_argument("-p", "--processBits", dest="processBits", type = int, default = 8, help = "How much bits to process. By default 8 (1 byte)")
+    parser.add_argument("-l", "--logLevel", dest="logLevel", type = int, default = 2, help = "To configure logging messages. 1 - DEBUG, 2 - INFO, 3 - WARNING, 4 - ERROR, 5 - CRITICAL")
     args = parser.parse_args()
     
     srcFile: str = args.srcFile
     outFile: str = args.outFile
     logLevel: int = args.logLevel
+    processBits: int = args.processBits
     
     if logLevel <= 0 or logLevel > 5:
         raise Exception("Bad logLevel")
     
-    logging.basicConfig(level = logLevel * 10, filename = "logs/encoder.txt", filemode = "w",
+    logging.basicConfig(level = logLevel * 10, filename = "logs/encoder.log", filemode = "w",
         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         
-    encoder: HuffmanEncoder = HuffmanEncoder(srcFile, outFile)
+    encoder: HuffmanEncoder = HuffmanEncoder(srcFile, outFile, processBits)
     encoder.Run()
 
 if __name__ == "__main__":

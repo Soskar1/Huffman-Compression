@@ -4,7 +4,7 @@ import binary_tree, byte_reader, file_compression_config
 import argparse, io, logging, sys, time
 
 class HuffmanDecoder(object):
-    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 102400, outMaxBufferLength: int = 102400):
+    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
         self.m_srcFile: io.BufferedReader = None
@@ -158,7 +158,7 @@ class HuffmanDecoder(object):
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "wb") as outFile:
-            while not self.m_byteReader.IsReachedEndOfBuffer() or self.m_byteReader.IsReadingCurrentByte() or self.UpdateReadBuffer():
+            while self.m_byteReader.CanRead() or self.UpdateReadBuffer():
                 status: int = self.m_byteReader.ReadBit()
 
                 if status == -1:
@@ -200,7 +200,7 @@ def main():
     if logLevel <= 0 or logLevel > 5:
         raise Exception("Bad logLevel")
     
-    logging.basicConfig(level = logLevel * 10, filename = "logs/decoder.txt", filemode = "w",
+    logging.basicConfig(level = logLevel * 10, filename = "logs/decoder.log", filemode = "w",
         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     decoder: HuffmanDecoder = HuffmanDecoder(srcFile, outFile)
