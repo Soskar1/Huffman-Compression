@@ -10,8 +10,9 @@ class ByteWriter(object):
         self.m_logger: logging.Logger = logging.getLogger(__name__)
 
     def UpdateBuffer(self):
-        self.m_logger.debug(f"Appending {self.m_currentByte:08b} to buffer")
         self.m_buffer.append(self.m_currentByte)
+        self.m_logger.debug(f"Appended {self.m_currentByte:08b} to buffer. Current buffer {self.m_buffer}")
+        
         self.m_currentByte = 0b0
         self.m_leftToWriteBits = self.m_maxBits
     

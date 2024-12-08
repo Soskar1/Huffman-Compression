@@ -124,7 +124,7 @@ class HuffmanDecoder(object):
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "w") as outFile:
-            while not self.m_byteReader.IsReachedEndOfBuffer() or self.UpdateReadBuffer():
+            while not self.m_byteReader.IsReachedEndOfBuffer() or not self.m_byteReader.IsReadCurrentByte() or self.UpdateReadBuffer():
                 status: int = self.m_byteReader.ReadBit()
 
                 if status == -1:
@@ -134,6 +134,8 @@ class HuffmanDecoder(object):
                 if currentCode in self.m_huffmanCode:
                     toWrite: str = self.m_huffmanCode[currentCode]
                     writeBuffer += toWrite
+                    self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{toWrite}". Current buffer: {writeBuffer}')
+                    
                     currentCode = ""
 
                     if len(writeBuffer) > self.m_outMaxBufferLength:

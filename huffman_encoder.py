@@ -135,6 +135,7 @@ class HuffmanEncoder(object):
 
                 for byte in readBuffer:
                     code = self.m_huffmanCode[byte]
+                    self.m_logger.debug(f"Read {byte}. It's code: {code}")
                     for bit in code:
                         byteWriter.WriteBit(int(bit))
 
@@ -143,7 +144,7 @@ class HuffmanEncoder(object):
                         outFile.write(byteWriter.m_buffer)
 
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
-            byteWriter.m_buffer.append(byteWriter.m_currentByte)
+            byteWriter.UpdateBuffer()
 
         outFile.write(byteWriter.m_buffer)
         outFile.close()
