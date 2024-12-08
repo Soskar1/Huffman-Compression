@@ -23,8 +23,8 @@ class ByteReader(object):
         self.m_logger.debug(f"DoesNextByteExists? Current index = {self.m_currentByteIndex}. Buffer length = {len(self.m_buffer)}")
         return self.m_currentByteIndex + 1 <= len(self.m_buffer) - 1
     
-    def IsReadCurrentByte(self) -> bool:
-        return self.m_leftToReadBits == 0
+    def IsReadingCurrentByte(self) -> bool:
+        return self.m_leftToReadBits > 0
     
     def IsReachedEndOfBuffer(self) -> bool:
         return self.m_currentByteIndex >= len(self.m_buffer) - 1
@@ -124,6 +124,9 @@ class ByteReader(object):
         self.m_buffer = buffer
         self.m_currentByteIndex = 0
         self.m_currentByte = buffer[0]
+        
+        if self.m_leftToReadBits == 0:
+            self.m_leftToReadBits = self.m_maxBits
     
     def SaveByteReaderState(self) -> ByteReaderState:
         self.m_logger.debug("Saving ByteReader state")

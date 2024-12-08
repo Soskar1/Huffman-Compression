@@ -154,7 +154,7 @@ class HuffmanDecoder(object):
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "w") as outFile:
-            while not self.m_byteReader.IsReachedEndOfBuffer() or not self.m_byteReader.IsReadCurrentByte() or self.UpdateReadBuffer():
+            while not self.m_byteReader.IsReachedEndOfBuffer() or self.m_byteReader.IsReadingCurrentByte() or self.UpdateReadBuffer():
                 status: int = self.m_byteReader.ReadBit()
 
                 if status == -1:
