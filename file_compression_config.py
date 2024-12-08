@@ -1,1 +1,1 @@
-ENF_OF_FILE = "__EOF__"
+ENF_OF_FILE: str = "__EOF__"
