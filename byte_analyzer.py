@@ -2,7 +2,7 @@ import os
 from typing import Dict, List
 
 class ByteAnalyzer(object):
-    def __init__(self, fileName: str, bufferSize: int = 8192):
+    def __init__(self, fileName: str, bufferSize: int = 102400):
         self.m_bufferSize = bufferSize
         self.m_fileName = fileName
 

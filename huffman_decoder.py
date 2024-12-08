@@ -1,10 +1,10 @@
 from typing import Dict
 
 import binary_tree, byte_reader, file_compression_config
-import argparse, io, logging, sys
+import argparse, io, logging, sys, time
 
 class HuffmanDecoder(object):
-    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
+    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 102400, outMaxBufferLength: int = 102400):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
         self.m_srcFile: io.BufferedReader = None
@@ -33,8 +33,12 @@ class HuffmanDecoder(object):
             byte = self.m_huffmanCode[code]
             self.m_logger.info(f"{code} | {byte}")
 
+        startTime: float = time.time()
         self.Decode()
+        endTime: float = time.time()
         self.m_srcFile.close()
+        
+        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
 
     def UpdateReadBuffer(self) -> bool:
         self.m_logger.debug("Trying to update a read buffer...")
@@ -181,8 +185,6 @@ class HuffmanDecoder(object):
             if len(writeBuffer) > 0:
                 outFile.write(writeBuffer.encode("latin1"))
                 writeBuffer = ""
-
-        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}")
 
 def main():
     parser = argparse.ArgumentParser()

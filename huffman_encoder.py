@@ -1,10 +1,10 @@
 from typing import Dict, List
 
 import binary_tree, byte_analyzer, byte_writer, file_compression_config
-import argparse, io, logging, sys
+import argparse, io, logging, sys, time
 
 class HuffmanEncoder(object):
-    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
+    def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 102400, outMaxBufferLength: int = 102400):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
 
@@ -37,8 +37,11 @@ class HuffmanEncoder(object):
         self.m_logger.info("Constructing Huffman Header...")
         self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
         self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
-
+        
+        startTime: float = time.time()
         self.Encode()
+        endTime: float = time.time()
+        self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
 
     def AnalyzeSourceFile(self) -> None:
         self.m_logger.info(f"Analyzing {self.m_srcFilePath}...")
@@ -170,7 +173,6 @@ class HuffmanEncoder(object):
         content = byteWriter.PopContent(getAll=True)
         outFile.write(content)
         outFile.close()
-        self.m_logger.info("Done")
 
 def main() -> None:
     parser = argparse.ArgumentParser()
