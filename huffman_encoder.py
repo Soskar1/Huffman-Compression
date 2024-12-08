@@ -140,16 +140,17 @@ class HuffmanEncoder(object):
                 outFile.write(content)
 
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")
-        with open(self.m_srcFilePath, "r") as src:
+        with open(self.m_srcFilePath, "rb") as src:
             while True:
-                readBuffer: str = src.read(self.m_srcMaxBufferLength)
+                readBuffer: bytes = src.read(self.m_srcMaxBufferLength)
 
-                if readBuffer == "":
+                if readBuffer == b'':
                     break
 
                 for byte in readBuffer:
-                    code = self.m_huffmanCode[byte]
-                    self.m_logger.debug(f"Read {byte}. It's code: {code}")
+                    char: chr = chr(byte)
+                    code = self.m_huffmanCode[char]
+                    self.m_logger.debug(f'Read "{char}". It\'s code: {code}')
                     for bit in code:
                         byteWriter.WriteBit(int(bit))
 

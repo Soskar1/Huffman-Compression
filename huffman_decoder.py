@@ -153,7 +153,7 @@ class HuffmanDecoder(object):
         writeBuffer: str = ""
 
         self.m_logger.info("Decoding...")
-        with open(self.m_outFilePath, "w") as outFile:
+        with open(self.m_outFilePath, "wb") as outFile:
             while not self.m_byteReader.IsReachedEndOfBuffer() or self.m_byteReader.IsReadingCurrentByte() or self.UpdateReadBuffer():
                 status: int = self.m_byteReader.ReadBit()
 
@@ -175,11 +175,11 @@ class HuffmanDecoder(object):
 
                     if len(writeBuffer) > self.m_outMaxBufferLength:
                         self.m_logger.debug(f"Write buffer exceeds max buffer length limit! Writing to {self.m_outFilePath}...")
-                        outFile.write(writeBuffer)
+                        outFile.write(writeBuffer.encode("latin1"))
                         writeBuffer = ""
 
             if len(writeBuffer) > 0:
-                outFile.write(writeBuffer)
+                outFile.write(writeBuffer.encode("latin1"))
                 writeBuffer = ""
 
         self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}")
