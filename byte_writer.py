@@ -74,3 +74,14 @@ class ByteWriter(object):
             return 1 if byte & 0b10 == 0b10 else 0
         if position == 7:
             return 1 if byte & 0b1 == 0b1 else 0
+    
+    def PopContent(self, getAll: bool = False) -> bytearray:
+        if self.m_leftToWriteBits == self.m_maxBits or getAll:
+            content = bytearray(self.m_buffer)
+            self.m_buffer.clear()
+            return content
+        
+        lastIndex = len(self.m_buffer) - 1
+        content = self.m_buffer[:lastIndex]
+        self.m_buffer = bytearray([self.m_buffer[lastIndex]])
+        return content

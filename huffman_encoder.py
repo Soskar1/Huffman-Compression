@@ -122,22 +122,22 @@ class HuffmanEncoder(object):
             elif self.m_huffmanHeader[index] == '1':
                 byteWriter.WriteBit(1)
                 
-                nextChar = self.m_huffmanHeader[index + 1]
-                if nextChar in self.m_endOfFile:
+                textResult = self.m_huffmanHeader[index + 1]
+                if textResult in self.m_endOfFile:
                     subHeader = self.m_huffmanHeader[index + 1:index + len(self.m_endOfFile) + 1]
                     if subHeader == self.m_endOfFile:
                         self.m_logger.debug(f"Found {self.m_endOfFile}")
-                        for char in subHeader:
-                            byteWriter.WriteByte(ord(char))
+                        textResult = self.m_endOfFile
                         
-                        index += len(self.m_endOfFile) + 1
-                else:
-                    byteWriter.WriteByte(ord(self.m_huffmanHeader[index + 1]))
-                    index += 2
+                for char in textResult:
+                    byteWriter.WriteByte(ord(char))
+                
+                index += len(textResult) + 1
 
             if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
                 self.m_logger.debug(f"ByteWriter buffer filled while trying to write huffman header! Writing content to {self.m_outFilePath}")
-                outFile.write(byteWriter.m_buffer)
+                content = byteWriter.PopContent()
+                outFile.write(content)
 
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")
         with open(self.m_srcFilePath, "r") as src:
@@ -155,7 +155,8 @@ class HuffmanEncoder(object):
 
                     if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
                         self.m_logger.debug(f"ByteWriter buffer filled while encoding {self.m_srcFilePath}! Writing content to {self.m_outFilePath}")
-                        outFile.write(byteWriter.m_buffer)
+                        content = byteWriter.PopContent()
+                        outFile.write(content)
 
         self.m_logger.debug(f"Adding {self.m_endOfFile}")
         endOfFileCode = self.m_huffmanCode[self.m_endOfFile]
@@ -165,7 +166,8 @@ class HuffmanEncoder(object):
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
             byteWriter.UpdateBuffer()
 
-        outFile.write(byteWriter.m_buffer)
+        content = byteWriter.PopContent(getAll=True)
+        outFile.write(content)
         outFile.close()
         self.m_logger.info("Done")
 
