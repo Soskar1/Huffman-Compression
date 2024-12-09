@@ -24,25 +24,21 @@ class HuffmanEncoder(object):
     def Run(self) -> None:
         self.AnalyzeSourceFile()
         
-        for byte in sorted(self.m_bytePopularity.keys()):
-            binaryList = [format(ord(char), '08b') for char in byte]
-            print(f"{byte} ({binaryList}): {self.m_bytePopularity[byte]}")
+        self.m_bytePopularity[self.m_endOfFile] = 1
+        self.ConstructHuffmanTree()
 
-        # self.m_bytePopularity[self.m_endOfFile] = 1
-        # self.ConstructHuffmanTree()
-        # 
-        # self.m_logger.info("Constructing Huffman Code...")
-        # self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
-# 
-        # self.m_logger.info("Character | Huffman Code | Popularity")
-        # for byte in sorted(self.m_huffmanCode.keys()):
-        #     code = self.m_huffmanCode[byte]
-        #     self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
-# 
-        # self.m_logger.info("Constructing Huffman Header...")
-        # self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
-        # self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
-        # 
+        self.m_logger.info("Constructing Huffman Code...")
+        self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
+
+        self.m_logger.info("Character | Huffman Code | Popularity")
+        for byte in sorted(self.m_huffmanCode.keys()):
+            code = self.m_huffmanCode[byte]
+            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
+
+        self.m_logger.info("Constructing Huffman Header...")
+        self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
+        self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
+        
         # startTime: float = time.time()
         # self.Encode()
         # endTime: float = time.time()
@@ -109,7 +105,9 @@ class HuffmanEncoder(object):
             
             for byte in node.m_bytes:
                 self.m_huffmanHeader += byte
-                self.m_logger.debug(f'Appended "{byte}" ({ord(byte):08b}) to header. Current header = {self.m_huffmanHeader}')
+                
+                binaryList = [format(ord(char), '08b') for char in byte]
+                self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeader}')
 
     def Encode(self) -> None:
         outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
