@@ -23,26 +23,30 @@ class HuffmanEncoder(object):
 
     def Run(self) -> None:
         self.AnalyzeSourceFile()
-        self.m_bytePopularity[self.m_endOfFile] = 1
-
-        self.ConstructHuffmanTree()
         
-        self.m_logger.info("Constructing Huffman Code...")
-        self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
+        for byte in sorted(self.m_bytePopularity.keys()):
+            binaryList = [format(ord(char), '08b') for char in byte]
+            print(f"{byte} ({binaryList}): {self.m_bytePopularity[byte]}")
 
-        self.m_logger.info("Character | Huffman Code | Popularity")
-        for byte in sorted(self.m_huffmanCode.keys()):
-            code = self.m_huffmanCode[byte]
-            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
-
-        self.m_logger.info("Constructing Huffman Header...")
-        self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
-        self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
-        
-        startTime: float = time.time()
-        self.Encode()
-        endTime: float = time.time()
-        self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
+        # self.m_bytePopularity[self.m_endOfFile] = 1
+        # self.ConstructHuffmanTree()
+        # 
+        # self.m_logger.info("Constructing Huffman Code...")
+        # self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
+# 
+        # self.m_logger.info("Character | Huffman Code | Popularity")
+        # for byte in sorted(self.m_huffmanCode.keys()):
+        #     code = self.m_huffmanCode[byte]
+        #     self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
+# 
+        # self.m_logger.info("Constructing Huffman Header...")
+        # self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
+        # self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
+        # 
+        # startTime: float = time.time()
+        # self.Encode()
+        # endTime: float = time.time()
+        # self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
 
     def AnalyzeSourceFile(self) -> None:
         self.m_logger.info(f"Analyzing {self.m_srcFilePath}...")
