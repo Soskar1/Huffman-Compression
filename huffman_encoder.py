@@ -7,6 +7,7 @@ class HuffmanEncoder(object):
     def __init__(self, srcFilePath: str, outFilePath: str, processBits: int, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024):
         self.m_srcFilePath: str = srcFilePath
         self.m_outFilePath: str = outFilePath
+        self.m_outFile: io.BufferedWriter = None
 
         self.m_processBits: int = processBits
         self.m_srcMaxBufferLength: int = srcMaxBufferLength
@@ -40,7 +41,7 @@ class HuffmanEncoder(object):
         self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
         
         # startTime: float = time.time()
-        # self.Encode()
+        self.Encode()
         # endTime: float = time.time()
         # self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
 
@@ -110,13 +111,26 @@ class HuffmanEncoder(object):
                 self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeader}')
 
     def Encode(self) -> None:
-        outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
+        self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
+        
+        self.EncodeHeader(byteWriter)
+        # self.EncodeSourceFile(byteWriter)
+        
+        if len(byteWriter.m_buffer) > 0:
+            content = byteWriter.PopContent()
+            self.m_outFile.write(content)
+        
+        self.m_outFile.close()
 
+    def EncodeHeader(self, byteWriter: byte_writer.ByteWriter) -> None:
+        # Writing only 4 bits, because 16 is a max value for processBits
+        byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4) 
+        
         uniqueCharacters: int = len(self.m_huffmanCode.keys()) - 2
         self.m_logger.info(f"Encoder encountered {uniqueCharacters + 1} unique characters.")
-
-        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
-        byteWriter.WriteByte(uniqueCharacters)
+        
+        byteWriter.WriteBitsFromByte(uniqueCharacters, self.m_processBits)
 
         self.m_logger.info(f"Writing huffman header...")
         index: int = 0
@@ -134,17 +148,25 @@ class HuffmanEncoder(object):
                     if subHeader == self.m_endOfFile:
                         self.m_logger.debug(f"Found {self.m_endOfFile}")
                         textResult = self.m_endOfFile
-                        
-                for char in textResult:
-                    byteWriter.WriteByte(ord(char))
+                
+                if self.m_processBits % 8 != 0:
+                    byteToWrite: int = 0
+                    for char in textResult:
+                        byteToWrite += ord(char)
+
+                    byteWriter.WriteBitsFromByte(byteToWrite, self.m_processBits) 
+                else:
+                    for char in textResult:
+                        byteWriter.WriteByte(ord(char))
                 
                 index += len(textResult) + 1
 
             if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
                 self.m_logger.debug(f"ByteWriter buffer filled while trying to write huffman header! Writing content to {self.m_outFilePath}")
                 content = byteWriter.PopContent()
-                outFile.write(content)
+                self.m_outFile.write(content)
 
+    def EncodeSourceFile(self, byteWriter: byte_writer.ByteWriter) -> None:
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")
         with open(self.m_srcFilePath, "rb") as src:
             while True:
@@ -163,7 +185,7 @@ class HuffmanEncoder(object):
                     if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
                         self.m_logger.debug(f"ByteWriter buffer filled while encoding {self.m_srcFilePath}! Writing content to {self.m_outFilePath}")
                         content = byteWriter.PopContent()
-                        outFile.write(content)
+                        self.m_outFile.write(content)
 
         self.m_logger.debug(f"Adding {self.m_endOfFile}")
         endOfFileCode = self.m_huffmanCode[self.m_endOfFile]
@@ -174,8 +196,7 @@ class HuffmanEncoder(object):
             byteWriter.UpdateBuffer()
 
         content = byteWriter.PopContent(getAll=True)
-        outFile.write(content)
-        outFile.close()
+        self.m_outFile.write(content)
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -192,6 +213,9 @@ def main() -> None:
     
     if logLevel <= 0 or logLevel > 5:
         raise Exception("Bad logLevel")
+    
+    if processBits <= 1 or processBits > 16:
+        raise Exception("Bad processBits")
     
     logging.basicConfig(level = logLevel * 10, filename = "logs/encoder.log", filemode = "w",
         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
