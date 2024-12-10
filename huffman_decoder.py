@@ -203,6 +203,7 @@ class HuffmanDecoder(object):
                     continue
                 
                 currentCode += str(status)
+                self.m_logger.debug(f"Current code: {currentCode}")
                 if currentCode in self.m_huffmanCode:
                     toWrite: str = self.m_huffmanCode[currentCode]
                     self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{toWrite}"')
@@ -213,6 +214,7 @@ class HuffmanDecoder(object):
                             self.m_logger.debug("Need to fix last byte!")
                             byteWriter.MoveBack()
                             byteWriter.WriteBitsFromByte(lastByte, byteWriter.m_leftToWriteBits)
+                        
                         break
                     
                     byte: int = 0
@@ -221,9 +223,12 @@ class HuffmanDecoder(object):
                     if self.m_processBits <= 8:
                         byte = ord(toWrite)
                     else:
-                        byteWriter.WriteByte(ord(toWrite[0]))
+                        byte = ord(toWrite[0])
+                        byteWriter.WriteByte(byte)
                         
                         if len(toWrite) == 1:
+                            lastByte = byte
+                            currentCode = ""
                             continue
                         
                         byte = ord(toWrite[1])

@@ -25,6 +25,7 @@ class ByteAnalyzer(object):
 
         def ConstructByte(bitsToProcess: int) -> chr:
             byte: chr = 0b0
+            readBits = 0
             for _ in range(bitsToProcess):
                 result: int = byteReader.ReadBit()
                 
@@ -32,10 +33,14 @@ class ByteAnalyzer(object):
                     if UpdateBuffer():
                         result = byteReader.ReadBit()
                     else:
-                        return -1
+                        if readBits > 0:
+                            return byte
+                        else:
+                            return -1
                 
                 byte <<= 1
                 byte |= result
+                readBits += 1
             
             return byte
 
@@ -75,7 +80,9 @@ class ByteAnalyzer(object):
                     if result != -1:
                         byteToAdd += chr(result)
             else:
-                byteToAdd = chr(ConstructByte(self.m_processBits))
+                result: int = ConstructByte(self.m_processBits)
+                if result != -1:
+                    byteToAdd = chr(result)
             
             if len(byteToAdd) > 0:
                 if byteToAdd not in bytePopularity:

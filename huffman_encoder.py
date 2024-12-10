@@ -24,13 +24,13 @@ class HuffmanEncoder(object):
 
     def Run(self) -> None:
         self.AnalyzeSourceFile()
-        
-        self.m_bytePopularity[self.m_endOfFile] = 1
-        self.ConstructHuffmanTree()
 
         self.m_logger.debug("Byte Popularity Dict content")
         for byte in sorted(self.m_bytePopularity.keys()):
             self.m_logger.debug(f"{byte} | {self.m_bytePopularity[byte]}")
+        
+        self.m_bytePopularity[self.m_endOfFile] = 1
+        self.ConstructHuffmanTree()
 
         self.m_logger.info("Constructing Huffman Code...")
         self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
