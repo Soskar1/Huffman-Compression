@@ -15,8 +15,7 @@ class HuffmanEncoder(object):
 
         self.m_bytePopularity: Dict[str, int] = {}
         self.m_huffmanTreeRootNode: binary_tree.Node = None
-        self.m_huffmanCode: Dict[int, str] = {}
-        self.m_huffmanCodeDebug: Dict[str, str] = {}
+        self.m_huffmanCode: Dict[str, str] = {}
         self.m_huffmanHeaderDebug: str = ""
         self.m_endOfFile: str = file_compression_config.ENF_OF_FILE
         
@@ -33,10 +32,9 @@ class HuffmanEncoder(object):
         self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
 
         self.m_logger.info("Character | Binary | Huffman Code | Popularity")
-        for byte in sorted(self.m_huffmanCodeDebug.keys()):
-            code = self.m_huffmanCodeDebug[byte]
-            byteInt: int = self.FromBytesToInt(byte)
-            self.m_logger.info(f"{byte} | {byteInt:08b} | {code} | {self.m_bytePopularity[byte]}")
+        for byte in sorted(self.m_huffmanCode.keys()):
+            code = self.m_huffmanCode[byte]
+            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
         
         startTime: float = time.time()
         self.Encode()
@@ -74,12 +72,6 @@ class HuffmanEncoder(object):
             leafs.append(newNode)
 
         self.m_huffmanTreeRootNode = leafs.pop(0)
-    
-    def FromBytesToInt(self, bytes: str) -> int:
-        byteInt: int = 0
-        for char in bytes:
-            byteInt += ord(char)
-        return byteInt
 
     def ConstructHuffmanCode(self, node: binary_tree.Node, currentCode: str = "") -> None:
         left, right = node.m_left, node.m_right
@@ -91,9 +83,7 @@ class HuffmanEncoder(object):
             self.ConstructHuffmanCode(right, currentCode + '1')
 
         if node.IsLeaf():
-            byte: int = self.FromBytesToInt(node.m_bytes)
-            self.m_huffmanCode[byte] = currentCode
-            self.m_huffmanCodeDebug[node.m_bytes] = currentCode
+            self.m_huffmanCode[node.m_bytes] = currentCode
 
     def Encode(self) -> None:
         self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
@@ -166,8 +156,10 @@ class HuffmanEncoder(object):
                 
                 while byteReader.CanRead():
                     byte: int = 0
+                    dictKey: str = ""
+                    read = False
 
-                    for _ in range(self.m_processBits):
+                    for index in range(self.m_processBits):
                         byte <<= 1
                         result: int = byteReader.ReadBit()
 
@@ -176,8 +168,16 @@ class HuffmanEncoder(object):
                             break
 
                         byte |= result
+                        read = True
+                        if (index + 1) % 8 == 0:
+                            dictKey += chr(byte)
+                            byte = 0
+                            read = False
                     
-                    code: str = self.m_huffmanCode[byte]
+                    if read:
+                        dictKey += chr(byte)
+
+                    code: str = self.m_huffmanCode[dictKey]
                     self.m_logger.debug(f'Read {byte} "{byte:08b}". It\'s code: {code}')
                     for bit in code:
                         byteWriter.WriteBit(int(bit))
@@ -188,8 +188,7 @@ class HuffmanEncoder(object):
                         self.m_outFile.write(content)
 
         self.m_logger.debug(f"Adding {self.m_endOfFile}")
-        endOfFile = self.FromBytesToInt(self.m_endOfFile)
-        endOfFileCode = self.m_huffmanCode[endOfFile]
+        endOfFileCode = self.m_huffmanCode[self.m_endOfFile]
         for bit in endOfFileCode:
             byteWriter.WriteBit(int(bit))
 

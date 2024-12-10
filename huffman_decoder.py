@@ -215,8 +215,21 @@ class HuffmanDecoder(object):
                             byteWriter.WriteBitsFromByte(lastByte, byteWriter.m_leftToWriteBits)
                         break
                     
-                    byte: int = self.FromBytesToInt(toWrite)
-                    byteWriter.WriteBitsFromByte(byte, self.m_processBits)
+                    byte: int = 0
+                    bitsToWrite = self.m_processBits
+
+                    if self.m_processBits <= 8:
+                        byte = ord(toWrite)
+                    else:
+                        byteWriter.WriteByte(ord(toWrite[0]))
+                        
+                        if len(toWrite) == 1:
+                            continue
+                        
+                        byte = ord(toWrite[1])
+                        bitsToWrite -= 8
+
+                    byteWriter.WriteBitsFromByte(byte, bitsToWrite)
                     
                     currentCode = ""
                     lastByte = byte
@@ -229,12 +242,6 @@ class HuffmanDecoder(object):
             if len(byteWriter.m_buffer) > 0:
                 content: bytearray = byteWriter.PopContent(getAll=True)
                 outFile.write(content)
-
-    def FromBytesToInt(self, bytes: str) -> int:
-        byteInt: int = 0
-        for char in bytes:
-            byteInt += ord(char)
-        return byteInt
 
 def main():
     parser = argparse.ArgumentParser()
