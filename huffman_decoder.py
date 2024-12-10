@@ -15,8 +15,10 @@ class HuffmanDecoder(object):
         self.m_byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
         self.m_huffmanTreeRootNode: binary_tree.Node = binary_tree.Node()
         self.m_huffmanCode: Dict[str, str] = {}
-
+        
         self.m_endOfFile: str = file_compression_config.ENF_OF_FILE
+
+        self.m_processBits: int = 0
 
         self.m_logger: logging.Logger = logging.getLogger(__name__)
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -25,20 +27,20 @@ class HuffmanDecoder(object):
         self.m_srcFile = open(self.m_srcFilePath, "rb")
         self.DecodeHuffmanTree()
 
-        self.m_logger.info("Constructing Huffman Code...")
-        self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
+        # self.m_logger.info("Constructing Huffman Code...")
+        # self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
 
-        self.m_logger.info("Huffman Code | Character")
-        for code in self.m_huffmanCode.keys():
-            byte = self.m_huffmanCode[code]
-            self.m_logger.info(f"{code} | {byte}")
+        # self.m_logger.info("Huffman Code | Character")
+        # for code in self.m_huffmanCode.keys():
+        #     byte = self.m_huffmanCode[code]
+        #     self.m_logger.info(f"{code} | {byte}")
 
-        startTime: float = time.time()
-        self.Decode()
-        endTime: float = time.time()
-        self.m_srcFile.close()
+        # startTime: float = time.time()
+        # self.Decode()
+        # endTime: float = time.time()
+        # self.m_srcFile.close()
         
-        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
+        # self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
 
     def UpdateReadBuffer(self) -> bool:
         self.m_logger.debug("Trying to update a read buffer...")
@@ -57,8 +59,24 @@ class HuffmanDecoder(object):
         huffmanTreeDebug: str = ""
         endOfBufferErrorMessage: str = "Reached end of buffer while decoding Huffman Tree"
 
-        uniqueCharacterCount: int = ord(self.m_srcFile.read(1)) + 2
-        self.m_logger.info(f"Decoder knows that {self.m_srcFilePath} have {uniqueCharacterCount} unique characters")
+        self.UpdateReadBuffer()
+        
+        # Read process bits (4 bits) + 2
+        for _ in range(4):
+            self.m_processBits <<= 1
+            self.m_processBits |= self.m_byteReader.ReadBit()
+        
+        self.m_processBits += 2
+        self.m_logger.info(f"processBits: {self.m_processBits}")
+
+        # Read unique characters (processBits bits) + 1
+        uniqueCharacterCount: int = 0
+        for _ in range(self.m_processBits):
+            uniqueCharacterCount <<= 1
+            uniqueCharacterCount |= self.m_byteReader.ReadBit()
+
+        self.m_logger.info(f"Decoder knows that {self.m_srcFilePath} have {uniqueCharacterCount + 1} unique characters")
+        uniqueCharacterCount += 2
 
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
@@ -67,7 +85,17 @@ class HuffmanDecoder(object):
                 self.m_logger.error(endOfBufferErrorMessage)
                 assert False, endOfBufferErrorMessage
 
-        self.UpdateReadBuffer()
+        def ReadByteWithRetry() -> int:
+            result: int = self.m_byteReader.ReadByte()
+
+            if result == -1: # Reached end of buffer. Update Buffer
+                self.m_logger.debug("ReadByte. Updating buffer")
+                TryToUpdateBuffer()
+                
+                result: int = self.m_byteReader.ReadByte()
+
+            return result
+
         while uniqueCharacterCount > 0:
             status: int = self.m_byteReader.ReadBit()
             newNode: binary_tree.Node = binary_tree.Node()
@@ -85,37 +113,46 @@ class HuffmanDecoder(object):
             elif status == 1: # Construct new Node with next byte value
                 huffmanTreeDebug += '1'
                 self.m_logger.debug(f"Read 1 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
-                result: int = self.m_byteReader.ReadByte()
-
-                if result == -1: # Reached end of buffer. Update Buffer
-                    self.m_logger.debug("ReadByte. Updating buffer")
-                    TryToUpdateBuffer()
-                    
-                    result: int = self.m_byteReader.ReadByte()
-
-                # TODO: Add support for more than 1 byte source
                 
+                textResult: str = ""
+
+                # Check byte size
+                if self.m_processBits > 8:
+                    bit: int = self.m_byteReader.ReadBit()
+
+                    # size 1
+                    if bit == 0:
+                        result: int = ReadByteWithRetry()
+                        assert result != -1, "Something wrong"
+                        textResult += chr(result)
+                    elif bit == 1: # size 2
+                        result: int = ReadByteWithRetry()
+                        assert result != -1, "Something wrong"
+                        textResult += chr(result)
+
+                        result: int = ReadByteWithRetry()
+                        assert result != -1, "Something wrong"
+                        textResult += chr(result)
+                else:
+                    result: int = ReadByteWithRetry()
+                    assert result != -1, "Something wrong"
+                    textResult += chr(result)
+                
+                initialResult: str = textResult
                 # Decoding __EOF__
-                textResult: str = chr(result)
                 if textResult in self.m_endOfFile:
                     self.m_logger.debug(f'Found "{textResult}". It may be a part of {self.m_endOfFile}. Decoder will try to investigate it')
                     
                     byteReaderState: byte_reader.ByteReaderState = self.m_byteReader.SaveByteReaderState()
                     
-                    for _ in range(len(self.m_endOfFile) - 1):
-                        result = self.m_byteReader.ReadByte()
-                        
-                        if result == -1: # Reached end of buffer. Update Buffer
-                            self.m_logger.debug("EOF decoding. Updating buffer")
-                            TryToUpdateBuffer()
-
-                            result: int = self.m_byteReader.ReadByte()
+                    for _ in range(len(self.m_endOfFile) - 1 - (len(textResult) - 1)):
+                        result = ReadByteWithRetry()
                         
                         textResult += chr(result)
                         if not textResult in self.m_endOfFile:
                             self.m_logger.debug(f"Investigation failed. Returning ByteReader to the previous state. Bad endOfFile={textResult}")
                             self.m_byteReader.LoadByteReaderStat(byteReaderState)
-                            textResult = textResult[0]
+                            textResult = initialResult
                             break
                     
                 if textResult == self.m_endOfFile:

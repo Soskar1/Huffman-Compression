@@ -35,10 +35,6 @@ class HuffmanEncoder(object):
         for byte in sorted(self.m_huffmanCode.keys()):
             code = self.m_huffmanCode[byte]
             self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
-
-        self.m_logger.info("Constructing Huffman Header...")
-        self.ConstructHuffmanHeader(self.m_huffmanTreeRootNode)
-        self.m_logger.info(f"Huffman Header: {self.m_huffmanHeader}")
         
         # startTime: float = time.time()
         self.Encode()
@@ -89,42 +85,10 @@ class HuffmanEncoder(object):
         if node.IsLeaf(): 
             self.m_huffmanCode[node.m_bytes] = currentCode
 
-    def ConstructHuffmanHeader(self, node: binary_tree.Node) -> None:
-        if not node.IsLeaf() and node.m_parent != None:
-            self.m_huffmanHeader += '0'
-            self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeader}")
-        
-        if node.m_left != None:
-            self.ConstructHuffmanHeader(node.m_left)
-            
-        if node.m_right != None:
-            self.ConstructHuffmanHeader(node.m_right)
-            
-        if node.IsLeaf():
-            self.m_huffmanHeader += '1'
-            self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeader}")
-            
-            for byte in node.m_bytes:
-                self.m_huffmanHeader += byte
-                
-                binaryList = [format(ord(char), '08b') for char in byte]
-                self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeader}')
-
     def Encode(self) -> None:
         self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
-        
-        self.EncodeHeader(byteWriter)
-        # self.EncodeSourceFile(byteWriter)
-        
-        if len(byteWriter.m_buffer) > 0:
-            content = byteWriter.PopContent()
-            self.m_outFile.write(content)
-        
-        self.m_outFile.close()
 
-    def EncodeHeader(self, byteWriter: byte_writer.ByteWriter) -> None:
-        # Writing only 4 bits, because 16 is a max value for processBits
         byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4) 
         
         uniqueCharacters: int = len(self.m_huffmanCode.keys()) - 2
@@ -133,38 +97,54 @@ class HuffmanEncoder(object):
         byteWriter.WriteBitsFromByte(uniqueCharacters, self.m_processBits)
 
         self.m_logger.info(f"Writing huffman header...")
-        index: int = 0
+        self.EncodeHuffmanHeader(self.m_huffmanTreeRootNode, byteWriter)
+        self.m_logger.info(f"Header: {self.m_huffmanHeader}")
+        # self.EncodeSourceFile(byteWriter)
+        
+        if len(byteWriter.m_buffer) > 0:
+            self.m_logger.info(f"Writing to file {byteWriter.m_buffer}")
+            if byteWriter.m_leftToWriteBits != 8:
+                byteWriter.UpdateBuffer()
+            content = byteWriter.PopContent()
+            self.m_outFile.write(content)
+        
+        self.m_outFile.close()
 
-        while index < len(self.m_huffmanHeader):
-            if self.m_huffmanHeader[index] == '0':
-                byteWriter.WriteBit(0)
-                index += 1
-            elif self.m_huffmanHeader[index] == '1':
-                byteWriter.WriteBit(1)
-                
-                textResult = self.m_huffmanHeader[index + 1]
-                if textResult in self.m_endOfFile:
-                    subHeader = self.m_huffmanHeader[index + 1:index + len(self.m_endOfFile) + 1]
-                    if subHeader == self.m_endOfFile:
-                        self.m_logger.debug(f"Found {self.m_endOfFile}")
-                        textResult = self.m_endOfFile
-                
-                if self.m_processBits % 8 != 0:
-                    byteToWrite: int = 0
-                    for char in textResult:
-                        byteToWrite += ord(char)
-
-                    byteWriter.WriteBitsFromByte(byteToWrite, self.m_processBits) 
+    def EncodeHuffmanHeader(self, node: binary_tree.Node, byteWriter: byte_writer.ByteWriter) -> None:
+        if not node.IsLeaf() and node.m_parent != None:
+            self.m_huffmanHeader += '0'
+            byteWriter.WriteBit(0)
+            self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeader}")
+        
+        if node.m_left != None:
+            self.EncodeHuffmanHeader(node.m_left, byteWriter)
+            
+        if node.m_right != None:
+            self.EncodeHuffmanHeader(node.m_right, byteWriter)
+            
+        if node.IsLeaf():
+            self.m_huffmanHeader += '1'
+            byteWriter.WriteBit(1)
+            self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeader}")
+            
+            # Insert byte size for decoder
+            if self.m_processBits > 8:
+                if len(node.m_bytes) == 1:
+                    byteWriter.WriteBit(0) # size 1
                 else:
-                    for char in textResult:
-                        byteWriter.WriteByte(ord(char))
-                
-                index += len(textResult) + 1
+                    byteWriter.WriteBit(1) # size 2 or more
 
-            if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
-                self.m_logger.debug(f"ByteWriter buffer filled while trying to write huffman header! Writing content to {self.m_outFilePath}")
-                content = byteWriter.PopContent()
-                self.m_outFile.write(content)
+            for byte in node.m_bytes:
+                self.m_huffmanHeader += byte
+                byteWriter.WriteByte(ord(byte))
+                
+                binaryList = [format(ord(char), '08b') for char in byte]
+                self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeader}')
+        
+        if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
+            self.m_logger.debug(f"ByteWriter buffer filled while trying to write huffman header! Writing content to {self.m_outFilePath}")
+            content = byteWriter.PopContent()
+            self.m_outFile.write(content)
 
     def EncodeSourceFile(self, byteWriter: byte_writer.ByteWriter) -> None:
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")

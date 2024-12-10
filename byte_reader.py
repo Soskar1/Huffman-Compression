@@ -37,8 +37,8 @@ class ByteReader(object):
         
         if self.DoesNextByteExist():
             self.m_currentByteIndex += 1
+            self.m_logger.debug(f"Next byte exists in buffer! New index: {self.m_currentByteIndex}. Current byte = {self.m_currentByte:08b}. Next byte = {self.m_buffer[self.m_currentByteIndex]:08b}")
             self.m_currentByte = self.m_buffer[self.m_currentByteIndex]
-            self.m_logger.debug(f"Next byte exists in buffer! Incrementing index: {self.m_currentByteIndex}. Next byte = {self.m_currentByte:08b}")
             return True
         
         self.m_logger.debug("Next byte does not exist!")
@@ -77,6 +77,8 @@ class ByteReader(object):
         return int(result)
 
     def ReadByte(self) -> int | ByteReaderErrorCodes:
+        self.m_logger.debug("Reading byte...")
+        
         if self.m_leftToReadBits == 8:
             self.m_leftToReadBits = 0
             return self.m_currentByte
