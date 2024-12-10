@@ -8,19 +8,22 @@ class ByteReaderErrorCodes(Enum):
     END_OF_BUFFER = -1
 
 class ByteReader(object):
-    def __init__(self, buffer: bytes = bytes([0])):
+    def __init__(self, buffer: bytes = bytes([0]), debug: bool = False):
         self.m_buffer: bytes = buffer
         self.m_currentByte: int = buffer[0]
         self.m_maxBits: int = 8
         self.m_leftToReadBits: int = 8
         self.m_currentByteIndex: int = 0
+
+        self.m_debug: bool = debug
         self.m_logger: logging.Logger = logging.getLogger(__name__)
 
         self.m_useMemory: bool = False
         self.m_memory: int = 0
 
     def DoesNextByteExist(self) -> bool:
-        self.m_logger.debug(f"DoesNextByteExists? Current index = {self.m_currentByteIndex}. Buffer length = {len(self.m_buffer)}")
+        if self.m_debug:
+            self.m_logger.debug(f"DoesNextByteExists? Current index = {self.m_currentByteIndex}. Buffer length = {len(self.m_buffer)}")
         return self.m_currentByteIndex + 1 <= len(self.m_buffer) - 1
     
     def IsReadingCurrentByte(self) -> bool:
@@ -33,21 +36,28 @@ class ByteReader(object):
         return not self.IsReachedEndOfBuffer() or self.IsReadingCurrentByte()
 
     def Next(self) -> bool:
-        self.m_logger.debug(f"Trying to read next byte from buffer. Current index = {self.m_currentByteIndex}. Buffer length = {len(self.m_buffer)}")
+        if self.m_debug:
+            self.m_logger.debug(f"Trying to read next byte from buffer. Current index = {self.m_currentByteIndex}. Buffer length = {len(self.m_buffer)}")
         
         if self.DoesNextByteExist():
             self.m_currentByteIndex += 1
-            self.m_logger.debug(f"Next byte exists in buffer! New index: {self.m_currentByteIndex}. Current byte = {self.m_currentByte:08b}. Next byte = {self.m_buffer[self.m_currentByteIndex]:08b}")
+
+            if self.m_debug:
+                self.m_logger.debug(f"Next byte exists in buffer! New index: {self.m_currentByteIndex}. Current byte = {self.m_currentByte:08b}. Next byte = {self.m_buffer[self.m_currentByteIndex]:08b}")
+            
             self.m_currentByte = self.m_buffer[self.m_currentByteIndex]
             return True
         
-        self.m_logger.debug("Next byte does not exist!")
+        if self.m_debug:
+            self.m_logger.debug("Next byte does not exist!")
+        
         return False
 
     def ReadBit(self) -> int | ByteReaderErrorCodes:
         if self.m_leftToReadBits == 0:
             if not self.Next():
-                self.m_logger.debug(f"ReadBit {ByteReaderErrorCodes.END_OF_BUFFER}")
+                if self.m_debug:
+                    self.m_logger.debug(f"ReadBit {ByteReaderErrorCodes.END_OF_BUFFER}")
                 return ByteReaderErrorCodes.END_OF_BUFFER.value
             else:
                 self.m_leftToReadBits = self.m_maxBits
@@ -73,11 +83,13 @@ class ByteReader(object):
         
         self.m_leftToReadBits -= 1
         
-        self.m_logger.debug(f"Read {int(result)} bit. leftToReadBits={self.m_leftToReadBits}")
+        if self.m_debug:
+            self.m_logger.debug(f"Read {int(result)} bit. leftToReadBits={self.m_leftToReadBits}")
         return int(result)
 
     def ReadByte(self) -> int | ByteReaderErrorCodes:
-        self.m_logger.debug("Reading byte...")
+        if self.m_debug:
+            self.m_logger.debug("Reading byte...")
         
         if self.m_leftToReadBits == 8:
             self.m_leftToReadBits = 0
@@ -85,7 +97,8 @@ class ByteReader(object):
         
         if self.m_leftToReadBits == 0:
             if not self.Next():
-                self.m_logger.debug(f"ReadByte {ByteReaderErrorCodes.END_OF_BUFFER}")
+                if self.m_debug:
+                    self.m_logger.debug(f"ReadByte {ByteReaderErrorCodes.END_OF_BUFFER}")
                 return ByteReaderErrorCodes.END_OF_BUFFER.value
             else:
                 return self.m_currentByte
@@ -94,7 +107,8 @@ class ByteReader(object):
         if not self.DoesNextByteExist():
             self.m_memory = self.m_currentByte
             self.m_useMemory = True
-            self.m_logger.debug(f"The next byte must be read, but reached {ByteReaderErrorCodes.END_OF_BUFFER}. Saving {self.m_currentByte} to memory")
+            if self.m_debug:
+                self.m_logger.debug(f"The next byte must be read, but reached {ByteReaderErrorCodes.END_OF_BUFFER}. Saving {self.m_currentByte} to memory")
             return ByteReaderErrorCodes.END_OF_BUFFER.value
         
         leftBytePiece: int = 0
@@ -102,7 +116,8 @@ class ByteReader(object):
             leftBytePiece = self.ShiftByte(self.m_currentByte)
             self.Next()
         else:
-            self.m_logger.debug(f"ByteReader has memory ({self.m_memory}). Using it to construct byte")
+            if self.m_debug:
+                self.m_logger.debug(f"ByteReader has memory ({self.m_memory}). Using it to construct byte")
             leftBytePiece: int = self.ShiftByte(self.m_memory)
 
             self.m_memory = 0
@@ -138,11 +153,13 @@ class ByteReader(object):
             self.m_leftToReadBits = self.m_maxBits
     
     def SaveByteReaderState(self) -> ByteReaderState:
-        self.m_logger.debug("Saving ByteReader state")
+        if self.m_debug:
+            self.m_logger.debug("Saving ByteReader state")
         return ByteReaderState(self)
 
     def LoadByteReaderStat(self, savedState: ByteReaderState) -> None:
-        self.m_logger.debug("Loading ByteReader state")
+        if self.m_debug:
+            self.m_logger.debug("Loading ByteReader state")
         self.m_buffer = savedState.m_buffer
         self.m_currentByte = savedState.m_currentByte
         self.m_leftToReadBits = savedState.m_leftToReadBits

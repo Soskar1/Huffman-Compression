@@ -4,14 +4,15 @@ import byte_reader
 import io
 
 class ByteAnalyzer(object):
-    def __init__(self, fileName: str, processBits: int, bufferSize: int = 1024):
+    def __init__(self, fileName: str, processBits: int, bufferSize: int = 1024, debug: bool = False):
         self.m_fileName: str = fileName
         self.m_bufferSize: int = bufferSize
         self.m_processBits: int = processBits
+        self.m_debug: bool = debug
 
     def Analyze(self) -> Dict[str, int]:
         bytePopularity: Dict[str, int] = {}
-        byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
+        byteReader: byte_reader.ByteReader = byte_reader.ByteReader(debug=self.m_debug)
         srcFile: io.BufferedReader = open(self.m_fileName, "rb")
         
         def UpdateBuffer() -> bool:
