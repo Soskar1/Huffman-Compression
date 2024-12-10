@@ -12,7 +12,7 @@ class ByteWriter(object):
 
     def UpdateBuffer(self):
         self.m_buffer.append(self.m_currentByte)
-        self.m_logger.debug(f"Appended {self.m_currentByte:08b} to buffer. Current buffer {self.m_buffer}")
+        self.m_logger.debug(f"Appended {self.m_currentByte:08b} to buffer. Buffer length: {len(self.m_buffer)}. Current buffer {self.m_buffer}")
         
         self.m_currentByte = 0b0
         self.m_leftToWriteBits = self.m_maxBits
@@ -58,14 +58,19 @@ class ByteWriter(object):
         self.m_lastWriteBits = bitsToWrite
 
     def PopContent(self, getAll: bool = False) -> bytearray:
+        self.m_logger.debug(f"Popping content. leftToWriteBits = {self.m_leftToWriteBits}. Buffer content = {self.m_buffer}")
+        
+        content = None
         if self.m_leftToWriteBits == self.m_maxBits or getAll:
             content = bytearray(self.m_buffer)
             self.m_buffer.clear()
-            return content
+        else:
+            lastIndex = len(self.m_buffer) - 1
+            content = self.m_buffer[:lastIndex]
+            self.m_buffer = bytearray([self.m_buffer[lastIndex]])
+            self.m_logger.debug(f"Updated buffer: {self.m_buffer}. Current byte: {self.m_currentByte:08b}. Byte in buffer: {self.m_buffer[0]:08b}")
         
-        lastIndex = len(self.m_buffer) - 1
-        content = self.m_buffer[:lastIndex]
-        self.m_buffer = bytearray([self.m_buffer[lastIndex]])
+        self.m_logger.debug(f"Popped content: {content}")
         return content
     
     def MoveBack(self) -> None:

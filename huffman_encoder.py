@@ -144,20 +144,22 @@ class HuffmanEncoder(object):
             content = byteWriter.PopContent()
             self.m_outFile.write(content)
 
+    def UpdateReadBuffer(self, src, byteReader):
+        readBuffer: bytes = src.read(self.m_srcMaxBufferLength)
+
+        if readBuffer == b'':
+            return False
+
+        byteReader.SetBuffer(readBuffer)
+        return True
+
     def EncodeSourceFile(self, byteWriter: byte_writer.ByteWriter) -> None:
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")
 
         byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
 
         with open(self.m_srcFilePath, "rb") as src:
-            while True:
-                readBuffer: bytes = src.read(self.m_srcMaxBufferLength)
-
-                if readBuffer == b'':
-                    break
-
-                byteReader.SetBuffer(readBuffer)
-                
+            while self.UpdateReadBuffer(src, byteReader):
                 while byteReader.CanRead():
                     byte: int = 0
                     dictKey: str = ""
@@ -168,8 +170,12 @@ class HuffmanEncoder(object):
                         result: int = byteReader.ReadBit()
 
                         if result == -1:
-                            byte >>= 1
-                            break
+                            self.m_logger.debug("NEED TO UPDATE BUFFER")
+                            if not self.UpdateReadBuffer(src, byteReader):
+                                byte >>= 1
+                                break
+
+                            result: int = byteReader.ReadBit()
 
                         byte |= result
                         read = True
