@@ -27,13 +27,13 @@ class HuffmanDecoder(object):
         self.m_srcFile = open(self.m_srcFilePath, "rb")
         self.DecodeHuffmanTree()
 
-        # self.m_logger.info("Constructing Huffman Code...")
-        # self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
+        self.m_logger.info("Constructing Huffman Code...")
+        self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
 
-        # self.m_logger.info("Huffman Code | Character")
-        # for code in self.m_huffmanCode.keys():
-        #     byte = self.m_huffmanCode[code]
-        #     self.m_logger.info(f"{code} | {byte}")
+        self.m_logger.info("Huffman Code | Character")
+        for code in self.m_huffmanCode.keys():
+            byte = self.m_huffmanCode[code]
+            self.m_logger.info(f"{code} | {byte}")
 
         # startTime: float = time.time()
         # self.Decode()
