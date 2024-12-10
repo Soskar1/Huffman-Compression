@@ -1,6 +1,6 @@
 from typing import Dict
 
-import binary_tree, byte_reader, file_compression_config
+import binary_tree, byte_reader, byte_writer, file_compression_config
 import argparse, io, logging, sys, time
 
 class HuffmanDecoder(object):
@@ -35,12 +35,12 @@ class HuffmanDecoder(object):
             byte = self.m_huffmanCode[code]
             self.m_logger.info(f"{code} | {byte}")
 
-        # startTime: float = time.time()
-        # self.Decode()
-        # endTime: float = time.time()
-        # self.m_srcFile.close()
+        startTime: float = time.time()
+        self.DecodeSourceFile()
+        endTime: float = time.time()
         
-        # self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
+        self.m_srcFile.close()
+        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
 
     def UpdateReadBuffer(self) -> bool:
         self.m_logger.debug("Trying to update a read buffer...")
@@ -189,9 +189,10 @@ class HuffmanDecoder(object):
         if node.IsLeaf(): 
             self.m_huffmanCode[currentCode] = node.m_bytes
 
-    def Decode(self) -> None:
+    def DecodeSourceFile(self) -> None:
         currentCode: str = ""
-        writeBuffer: str = ""
+        lastByte: int = 0
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "wb") as outFile:
@@ -207,21 +208,33 @@ class HuffmanDecoder(object):
                     self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{toWrite}"')
                     if toWrite == self.m_endOfFile:
                         self.m_logger.debug("Reached EOF")
+
+                        if byteWriter.m_leftToWriteBits != 8:
+                            self.m_logger.debug("Need to fix last byte!")
+                            byteWriter.MoveBack()
+                            byteWriter.WriteBitsFromByte(lastByte, byteWriter.m_leftToWriteBits)
                         break
                     
-                    writeBuffer += toWrite
-                    self.m_logger.debug(f"Updated write buffer. Current buffer content: {writeBuffer}")
+                    byte: int = self.FromBytesToInt(toWrite)
+                    byteWriter.WriteBitsFromByte(byte, self.m_processBits)
                     
                     currentCode = ""
+                    lastByte = byte
 
-                    if len(writeBuffer) > self.m_outMaxBufferLength:
+                    if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:
                         self.m_logger.debug(f"Write buffer exceeds max buffer length limit! Writing to {self.m_outFilePath}...")
-                        outFile.write(writeBuffer.encode("latin1"))
-                        writeBuffer = ""
+                        content: bytearray = byteWriter.PopContent()
+                        outFile.write(content)
 
-            if len(writeBuffer) > 0:
-                outFile.write(writeBuffer.encode("latin1"))
-                writeBuffer = ""
+            if len(byteWriter.m_buffer) > 0:
+                content: bytearray = byteWriter.PopContent(getAll=True)
+                outFile.write(content)
+
+    def FromBytesToInt(self, bytes: str) -> int:
+        byteInt: int = 0
+        for char in bytes:
+            byteInt += ord(char)
+        return byteInt
 
 def main():
     parser = argparse.ArgumentParser()

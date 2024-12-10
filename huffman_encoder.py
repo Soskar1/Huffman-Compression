@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-import binary_tree, byte_analyzer, byte_writer, file_compression_config
+import binary_tree, byte_analyzer, byte_reader, byte_writer, file_compression_config
 import argparse, io, logging, sys, time
 
 class HuffmanEncoder(object):
@@ -15,8 +15,9 @@ class HuffmanEncoder(object):
 
         self.m_bytePopularity: Dict[str, int] = {}
         self.m_huffmanTreeRootNode: binary_tree.Node = None
-        self.m_huffmanCode: Dict[str, str] = {}
-        self.m_huffmanHeader: str = ""
+        self.m_huffmanCode: Dict[int, str] = {}
+        self.m_huffmanCodeDebug: Dict[str, str] = {}
+        self.m_huffmanHeaderDebug: str = ""
         self.m_endOfFile: str = file_compression_config.ENF_OF_FILE
         
         self.m_logger: logging.Logger = logging.getLogger(__name__)
@@ -31,15 +32,16 @@ class HuffmanEncoder(object):
         self.m_logger.info("Constructing Huffman Code...")
         self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
 
-        self.m_logger.info("Character | Huffman Code | Popularity")
-        for byte in sorted(self.m_huffmanCode.keys()):
-            code = self.m_huffmanCode[byte]
-            self.m_logger.info(f"{byte} | {code} | {self.m_bytePopularity[byte]}")
+        self.m_logger.info("Character | Binary | Huffman Code | Popularity")
+        for byte in sorted(self.m_huffmanCodeDebug.keys()):
+            code = self.m_huffmanCodeDebug[byte]
+            byteInt: int = self.FromBytesToInt(byte)
+            self.m_logger.info(f"{byte} | {byteInt:08b} | {code} | {self.m_bytePopularity[byte]}")
         
-        # startTime: float = time.time()
+        startTime: float = time.time()
         self.Encode()
-        # endTime: float = time.time()
-        # self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
+        endTime: float = time.time()
+        self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
 
     def AnalyzeSourceFile(self) -> None:
         self.m_logger.info(f"Analyzing {self.m_srcFilePath}...")
@@ -72,6 +74,12 @@ class HuffmanEncoder(object):
             leafs.append(newNode)
 
         self.m_huffmanTreeRootNode = leafs.pop(0)
+    
+    def FromBytesToInt(self, bytes: str) -> int:
+        byteInt: int = 0
+        for char in bytes:
+            byteInt += ord(char)
+        return byteInt
 
     def ConstructHuffmanCode(self, node: binary_tree.Node, currentCode: str = "") -> None:
         left, right = node.m_left, node.m_right
@@ -82,8 +90,10 @@ class HuffmanEncoder(object):
         if right != None:
             self.ConstructHuffmanCode(right, currentCode + '1')
 
-        if node.IsLeaf(): 
-            self.m_huffmanCode[node.m_bytes] = currentCode
+        if node.IsLeaf():
+            byte: int = self.FromBytesToInt(node.m_bytes)
+            self.m_huffmanCode[byte] = currentCode
+            self.m_huffmanCodeDebug[node.m_bytes] = currentCode
 
     def Encode(self) -> None:
         self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
@@ -98,23 +108,17 @@ class HuffmanEncoder(object):
 
         self.m_logger.info(f"Writing huffman header...")
         self.EncodeHuffmanHeader(self.m_huffmanTreeRootNode, byteWriter)
-        self.m_logger.info(f"Header: {self.m_huffmanHeader}")
-        # self.EncodeSourceFile(byteWriter)
+        self.m_logger.info(f"Header: {self.m_huffmanHeaderDebug}")
         
-        if len(byteWriter.m_buffer) > 0:
-            self.m_logger.info(f"Writing to file {byteWriter.m_buffer}")
-            if byteWriter.m_leftToWriteBits != 8:
-                byteWriter.UpdateBuffer()
-            content = byteWriter.PopContent()
-            self.m_outFile.write(content)
+        self.EncodeSourceFile(byteWriter)
         
         self.m_outFile.close()
 
     def EncodeHuffmanHeader(self, node: binary_tree.Node, byteWriter: byte_writer.ByteWriter) -> None:
         if not node.IsLeaf() and node.m_parent != None:
-            self.m_huffmanHeader += '0'
+            self.m_huffmanHeaderDebug += '0'
             byteWriter.WriteBit(0)
-            self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeader}")
+            self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeaderDebug}")
         
         if node.m_left != None:
             self.EncodeHuffmanHeader(node.m_left, byteWriter)
@@ -123,9 +127,9 @@ class HuffmanEncoder(object):
             self.EncodeHuffmanHeader(node.m_right, byteWriter)
             
         if node.IsLeaf():
-            self.m_huffmanHeader += '1'
+            self.m_huffmanHeaderDebug += '1'
             byteWriter.WriteBit(1)
-            self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeader}")
+            self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeaderDebug}")
             
             # Insert byte size for decoder
             if self.m_processBits > 8:
@@ -135,11 +139,11 @@ class HuffmanEncoder(object):
                     byteWriter.WriteBit(1) # size 2 or more
 
             for byte in node.m_bytes:
-                self.m_huffmanHeader += byte
+                self.m_huffmanHeaderDebug += byte
                 byteWriter.WriteByte(ord(byte))
                 
                 binaryList = [format(ord(char), '08b') for char in byte]
-                self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeader}')
+                self.m_logger.debug(f'Appended "{byte}" ({binaryList}) to header. Current header = {self.m_huffmanHeaderDebug}')
         
         if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
             self.m_logger.debug(f"ByteWriter buffer filled while trying to write huffman header! Writing content to {self.m_outFilePath}")
@@ -148,6 +152,9 @@ class HuffmanEncoder(object):
 
     def EncodeSourceFile(self, byteWriter: byte_writer.ByteWriter) -> None:
         self.m_logger.info(f"Encoding {self.m_srcFilePath}")
+
+        byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
+
         with open(self.m_srcFilePath, "rb") as src:
             while True:
                 readBuffer: bytes = src.read(self.m_srcMaxBufferLength)
@@ -155,10 +162,23 @@ class HuffmanEncoder(object):
                 if readBuffer == b'':
                     break
 
-                for byte in readBuffer:
-                    char: chr = chr(byte)
-                    code = self.m_huffmanCode[char]
-                    self.m_logger.debug(f'Read "{char}". It\'s code: {code}')
+                byteReader.SetBuffer(readBuffer)
+                
+                while byteReader.CanRead():
+                    byte: int = 0
+
+                    for _ in range(self.m_processBits):
+                        byte <<= 1
+                        result: int = byteReader.ReadBit()
+
+                        if result == -1:
+                            byte >>= 1
+                            break
+
+                        byte |= result
+                    
+                    code: str = self.m_huffmanCode[byte]
+                    self.m_logger.debug(f'Read {byte} "{byte:08b}". It\'s code: {code}')
                     for bit in code:
                         byteWriter.WriteBit(int(bit))
 
@@ -168,7 +188,8 @@ class HuffmanEncoder(object):
                         self.m_outFile.write(content)
 
         self.m_logger.debug(f"Adding {self.m_endOfFile}")
-        endOfFileCode = self.m_huffmanCode[self.m_endOfFile]
+        endOfFile = self.FromBytesToInt(self.m_endOfFile)
+        endOfFileCode = self.m_huffmanCode[endOfFile]
         for bit in endOfFileCode:
             byteWriter.WriteBit(int(bit))
 

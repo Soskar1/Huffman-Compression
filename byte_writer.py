@@ -6,6 +6,7 @@ class ByteWriter(object):
         self.m_currentByte: int = 0b0
         self.m_maxBits: int = 8
         self.m_leftToWriteBits: int = 8
+        self.m_lastWriteBits: int = 0
 
         self.m_logger: logging.Logger = logging.getLogger(__name__)
 
@@ -41,6 +42,8 @@ class ByteWriter(object):
             for bitPosition in range(8):
                 bit: int = self.GetBitAtPosition(byte, bitPosition, self.m_maxBits)
                 self.WriteBit(bit)
+        
+        self.m_lastWriteBits = 8
     
     def GetBitAtPosition(self, byte: int, position: int, maxBits: int) -> int:
         return (byte >> (maxBits - 1 - position)) & 0b1
@@ -51,7 +54,9 @@ class ByteWriter(object):
         for bitPosition in range(bitsToWrite):
             bit: int = self.GetBitAtPosition(byte, bitPosition, bitsToWrite)
             self.WriteBit(bit)
-    
+        
+        self.m_lastWriteBits = bitsToWrite
+
     def PopContent(self, getAll: bool = False) -> bytearray:
         if self.m_leftToWriteBits == self.m_maxBits or getAll:
             content = bytearray(self.m_buffer)
@@ -62,3 +67,15 @@ class ByteWriter(object):
         content = self.m_buffer[:lastIndex]
         self.m_buffer = bytearray([self.m_buffer[lastIndex]])
         return content
+    
+    def MoveBack(self) -> None:
+        self.m_logger.debug(f"Moving back. Current state: leftToWriteBits = {self.m_leftToWriteBits}, lastWriteBits = {self.m_lastWriteBits}, currentByte = {self.m_currentByte:08b}")
+        self.m_leftToWriteBits = self.m_leftToWriteBits + self.m_lastWriteBits - self.m_maxBits
+        self.m_currentByte = self.m_buffer[len(self.m_buffer) - 1]
+        self.m_buffer = self.m_buffer[:-1]
+        self.m_logger.debug(f"Moved back. Current state: leftToWriteBits = {self.m_leftToWriteBits}, currentByte = {self.m_currentByte:08b}")
+        self.DeleteBitsFromEnd(self.m_leftToWriteBits)
+        self.m_logger.debug(f"Deleted {self.m_leftToWriteBits} bits. currentByte = {self.m_currentByte:08b}")
+
+    def DeleteBitsFromEnd(self, count: int) -> None:
+        self.m_currentByte &= (255 << count)
