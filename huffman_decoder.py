@@ -153,7 +153,7 @@ class HuffmanDecoder(object):
 
     def DecodeSourceFile(self) -> None:
         currentCode: str = ""
-        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "wb") as outFile:
@@ -192,7 +192,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("srcFile", help = "Path to the source file")
     parser.add_argument("outFile", help = "Path to the out file")
-    parser.add_argument("--logLevel", type = int, default = 2, help = "To configure logging messages. 1 - DEBUG, 2 - INFO, 3 - WARNING, 4 - ERROR, 5 - CRITICAL")
+    parser.add_argument("-l", "--logLevel", type = int, default = 2, help = "To configure logging messages. 1 - DEBUG, 2 - INFO, 3 - WARNING, 4 - ERROR, 5 - CRITICAL")
     args = parser.parse_args()
 
     srcFile: str = args.srcFile

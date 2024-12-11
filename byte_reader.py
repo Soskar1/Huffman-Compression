@@ -151,27 +151,3 @@ class ByteReader(object):
         
         if self.m_leftToReadBits == 0:
             self.m_leftToReadBits = self.m_maxBits
-    
-    def SaveByteReaderState(self) -> ByteReaderState:
-        if self.m_debug:
-            self.m_logger.debug("Saving ByteReader state")
-        return ByteReaderState(self)
-
-    def LoadByteReaderStat(self, savedState: ByteReaderState) -> None:
-        if self.m_debug:
-            self.m_logger.debug("Loading ByteReader state")
-        self.m_buffer = savedState.m_buffer
-        self.m_currentByte = savedState.m_currentByte
-        self.m_leftToReadBits = savedState.m_leftToReadBits
-        self.m_currentByteIndex = savedState.m_currentByteIndex
-        self.m_useMemory = savedState.m_useMemory
-        self.m_memory = savedState.m_memory
-    
-class ByteReaderState(object):
-    def __init__(self, byteReader: ByteReader):
-        self.m_buffer: bytes = byteReader.m_buffer
-        self.m_currentByte: int = byteReader.m_currentByte
-        self.m_leftToReadBits: int = byteReader.m_leftToReadBits
-        self.m_currentByteIndex: int = byteReader.m_currentByteIndex
-        self.m_useMemory: bool = byteReader.m_useMemory
-        self.m_memory: int = byteReader.m_memory
