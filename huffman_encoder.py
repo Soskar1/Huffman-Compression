@@ -96,12 +96,12 @@ class HuffmanEncoder(object):
         self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
 
-        ################ FIRST BYTE INFO
+        # First 4 bits for processBits
         byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4)
-        # Leaving space for amount of zero's at the end of file. Max value = 8
-        for _ in range(4):
+        
+        # Leaving space for padding zeros amount at the end of file
+        for _ in range(5):
             byteWriter.WriteBit(0)
-        ################
 
         self.m_logger.info(f"Writing huffman header...")
         self.EncodeHuffmanHeader(self.m_huffmanTreeRootNode, byteWriter)
@@ -133,13 +133,22 @@ class HuffmanEncoder(object):
                 if self.m_debug:
                     self.m_logger.debug(f"First byte: {firstByte:08b}")
                 
-                firstByte |= self.m_paddingZeros
+                firstByte |= self.m_paddingZeros >> 1
                 
                 if self.m_debug:
                     self.m_logger.debug(f"Updated to: {firstByte:08b}")
+
+                secondByte: int = int.from_bytes(outFile.read(1), byteorder="big")
+                if self.m_debug:
+                    self.m_logger.debug(f"Second byte: {secondByte:08b}")
+
+                secondByte |= (self.m_paddingZeros & 0b00001) << 7
+
+                if self.m_debug:
+                    self.m_logger.debug(f"Updated to: {secondByte:08b}")
                 
                 outFile.seek(0)
-                outFile.write(bytearray([firstByte]))
+                outFile.write(bytearray([firstByte, secondByte]))
 
     def EncodeHuffmanHeader(self, node: binary_tree.Node, byteWriter: byte_writer.ByteWriter) -> None:
         if not node.IsLeaf() and node.m_parent != None:
@@ -218,7 +227,7 @@ class HuffmanEncoder(object):
 
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
             self.m_paddingZeros = byteWriter.m_leftToWriteBits
-            byteWriter.UpdateBuffer()
+            byteWriter.AppendByteToBuffer()
 
         content = byteWriter.PopContent(getAll=True)
         self.m_outFile.write(content)

@@ -1,22 +1,16 @@
-import collections, logging
+import logging
 
 class ByteWriter(object):
-    def __init__(self, useHistory: bool = False, debug: bool = False):
+    def __init__(self, debug: bool = False):
         self.m_buffer: bytearray = bytearray()
         self.m_currentByte: int = 0b0
         self.m_maxBits: int = 8
         self.m_leftToWriteBits: int = 8
-        
-        self.m_useHistory: bool = useHistory
-        self.m_writerHistory: collections.deque = collections.deque([])
-        self.m_writeHistoryCapacity: int = 64
-
-        self.m_zeroCount: int = 0
 
         self.m_debug: bool = debug
         self.m_logger: logging.Logger = logging.getLogger(__name__)
 
-    def UpdateBuffer(self):
+    def AppendByteToBuffer(self):
         self.m_buffer.append(self.m_currentByte)
 
         if self.m_debug:
@@ -36,7 +30,7 @@ class ByteWriter(object):
         self.m_logger.debug(f"Wrote {str(bit)} bit. Current byte = {self.m_currentByte:08b}. leftToWriteBits = {self.m_leftToWriteBits}")
 
         if self.m_leftToWriteBits == 0:
-            self.UpdateBuffer()
+            self.AppendByteToBuffer()
 
         return 1
 
@@ -46,7 +40,7 @@ class ByteWriter(object):
 
         if self.m_leftToWriteBits == self.m_maxBits:
             self.m_currentByte = byte
-            self.UpdateBuffer()
+            self.AppendByteToBuffer()
         else:
             for bitPosition in range(8):
                 bit: int = self.GetBitAtPosition(byte, bitPosition, self.m_maxBits)
@@ -84,27 +78,18 @@ class ByteWriter(object):
         
         return content
 
-    def Undo(self) -> None:
+    def DeleteLastBit(self) -> None:
+        if self.m_leftToWriteBits == self.m_maxBits:
+            self.m_currentByte = self.m_buffer[-1]
+            self.m_buffer = self.m_buffer[:-1]
+            self.m_leftToWriteBits = 0
+
+            if self.m_debug:
+                self.m_logger.debug(f"Deleted last byte from the buffer! currentByte = {self.m_currentByte:08b}, buffer = {self.m_buffer}")
+        
+        self.m_currentByte >>= 1
+        self.m_leftToWriteBits += 1
+
         if self.m_debug:
-            self.m_logger.debug(f"Before undo: zeroCount = {self.m_zeroCount}, buffer = {self.m_buffer}")
-
-        self.m_writerHistory.pop()
-        lastState: ByteWriterState = self.m_writerHistory[-1]
-
-        self.m_buffer = lastState.m_buffer
-        self.m_zeroCount = lastState.m_zeroCount
-
-        if self.m_debug:
-            self.m_logger.debug(f"After undo: zeroCount = {self.m_zeroCount}, buffer = {self.m_buffer}")
-
-    def __AddToHistory(self) -> None:
-        writerState: ByteWriterState = ByteWriterState(self)
-        self.m_writerHistory.append(writerState)
-
-        if len(self.m_writerHistory) > self.m_writeHistoryCapacity:
-            self.m_writerHistory.popleft()
-
-class ByteWriterState(object):
-    def __init__(self, writer: ByteWriter):
-        self.m_buffer: bytearray = writer.m_buffer.copy()
-        self.m_zeroCount: int = writer.m_zeroCount
+            self.m_logger.debug(f"Deleted last bit. currentByte = {self.m_currentByte:08b}, leftToWriteBits = {self.m_leftToWriteBits}")
+    

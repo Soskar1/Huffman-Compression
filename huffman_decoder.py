@@ -65,18 +65,24 @@ class HuffmanDecoder(object):
         endOfBufferErrorMessage: str = "Reached end of buffer while decoding Huffman Tree"
 
         self.UpdateReadBuffer()
-        
-        # First byte info:
+
         # First 4 bits = process Bits
-        # Last 4 bits = left zeros at the end of file
-        firstByte: int = self.m_byteReader.ReadByte()
-        self.m_processBits: int = (firstByte >> 4) + 2
-        self.m_paddingZeros: int = firstByte & 0b1111
+        for _ in range(4):
+            bit: int = self.m_byteReader.ReadBit()
+            self.m_processBits <<= 1
+            self.m_processBits |= bit
+
+        self.m_processBits += 2
+
+        # Another 5 bits = padding zeros at the end of file
+        for _ in range(5):
+            bit: int = self.m_byteReader.ReadBit()
+            self.m_paddingZeros <<= 1
+            self.m_paddingZeros |= bit
 
         if self.m_debug:
-            self.m_logger.debug(f"First byte: {firstByte:08b}")
             self.m_logger.debug(f"processBits: {self.m_processBits}")
-            self.m_logger.debug(f"Zero's at the end of file: {self.m_paddingZeros}")
+            self.m_logger.debug(f"Padding zero's: {self.m_paddingZeros}")
 
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
@@ -158,7 +164,7 @@ class HuffmanDecoder(object):
 
     def DecodeSourceFile(self) -> None:
         currentCode: str = ""
-        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(useHistory=True, debug=self.m_debug)
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
         codeHistory: collections.deque = collections.deque([])
         codeHistoryCapacity: int = 8
 
@@ -196,38 +202,46 @@ class HuffmanDecoder(object):
                         content: bytearray = byteWriter.PopContent()
                         outFile.write(content)
 
-            # if self.m_paddingZeros > 0 and len(currentCode) != self.m_paddingZeros:
-            #     currentZeros: int = len(currentCode)
-                
-            #     if self.m_debug:
-            #         self.m_logger.debug(f"Left zero mismatch! Current zero count: {currentZeros}")
-                
-            #     while currentZeros != self.m_paddingZeros:
-            #         code = codeHistory[-1]
-            #         codeHistory.pop()
+            assert '1' not in currentCode
+            self.m_paddingZeros -= len(currentCode)
+
+            if self.m_paddingZeros > 0:
+                if self.m_debug:
+                    self.m_logger.debug(f"{self.m_paddingZeros} padding zeros left")
+
+                while self.m_paddingZeros and '1' not in codeHistory[-1]:
+                    lastCode = codeHistory[-1]
+                    codeHistory.pop()
+
+                    lastByte: int = self.m_huffmanCode[lastCode]
+                    byteStr: str = bin(lastByte)[2:]
+                    byteLength: int = len(byteStr)
+                    amountOfZeros: int = byteStr.count('0')
+
+                    if self.m_debug:
+                        self.m_logger.debug(f"Last used huffman code: {lastCode} ({lastByte:0{self.m_processBits}b}). Byte length to delete from buffer: {byteLength}")
                     
-            #         if self.m_debug:
-            #             self.m_logger.debug(f"Popped code history. Last code element in history: {code}")
+                    if self.m_paddingZeros != amountOfZeros:
+                        while byteLength > 0:
+                            byteWriter.DeleteLastBit()
+                            byteLength -= 1
+                        self.m_paddingZeros -= len(lastCode)
+                    else:
+                        byteLength = amountOfZeros
+                        while byteLength > 0:
+                            byteWriter.DeleteLastBit()
+                            byteLength -= 1
+                        self.m_paddingZeros = 0
+                    
+                    if self.m_debug:
+                        self.m_logger.debug(f"{self.m_paddingZeros} padding zeros left")
 
-            #         assert '1' not in code, "Found 1 in code"
+                while self.m_paddingZeros > 0:
+                    byteWriter.DeleteLastBit()
+                    self.m_paddingZeros -= 1
 
-            #         currentZeros += len(code)
-
-            #         byteWriter.Undo()
-
-            #         if self.m_debug:
-            #             self.m_logger.debug(f"ByteWriter.Undo(). Current zero count: {currentZeros}")
-            
-            # lastCode = codeHistory[-1]
-
-            # if self.m_debug:
-            #     self.m_logger.debug(f"Last code: {lastCode}")
-            
-            # if byteWriter.m_leftToWriteBits != 0:
-            #     if self.m_debug:
-            #         self.m_logger.debug(f"leftToWriteBits != 0. Need to undo last byte")
-
-            #     byteWriter.Undo()
+                    if self.m_debug:
+                        self.m_logger.debug(f"{self.m_paddingZeros} padding zeros left")
 
             if len(byteWriter.m_buffer) > 0:
                 content: bytearray = byteWriter.PopContent(getAll=True)
