@@ -1,7 +1,7 @@
 from typing import Dict
 
 import binary_tree, byte_reader, byte_writer
-import argparse, io, logging, sys, time
+import argparse, collections, io, logging, sys, time
 
 class HuffmanDecoder(object):
     def __init__(self, srcFilePath: str, outFilePath: str, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024, debug: bool = False):
@@ -17,7 +17,7 @@ class HuffmanDecoder(object):
         self.m_huffmanCode: Dict[str, str] = {}
         
         self.m_processBits: int = 0
-        self.m_leftZeros: int = 0
+        self.m_paddingZeros: int = 0
 
         self.m_debug: bool = debug
         self.m_logger: logging.Logger = logging.getLogger(__name__)
@@ -71,12 +71,12 @@ class HuffmanDecoder(object):
         # Last 4 bits = left zeros at the end of file
         firstByte: int = self.m_byteReader.ReadByte()
         self.m_processBits: int = (firstByte >> 4) + 2
-        self.m_leftZeros: int = firstByte & 0b1111
+        self.m_paddingZeros: int = firstByte & 0b1111
 
         if self.m_debug:
             self.m_logger.debug(f"First byte: {firstByte:08b}")
             self.m_logger.debug(f"processBits: {self.m_processBits}")
-            self.m_logger.debug(f"Zero's at the end of file: {self.m_leftZeros}")
+            self.m_logger.debug(f"Zero's at the end of file: {self.m_paddingZeros}")
 
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
@@ -158,7 +158,9 @@ class HuffmanDecoder(object):
 
     def DecodeSourceFile(self) -> None:
         currentCode: str = ""
-        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(useHistory=True, debug=self.m_debug)
+        codeHistory: collections.deque = collections.deque([])
+        codeHistoryCapacity: int = 8
 
         self.m_logger.info("Decoding...")
         with open(self.m_outFilePath, "wb") as outFile:
@@ -180,6 +182,11 @@ class HuffmanDecoder(object):
                         self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{byte:0{self.m_processBits}b}"')
 
                     byteWriter.WriteBitsFromByte(byte, self.m_processBits)
+
+                    codeHistory.append(currentCode)
+                    if len(codeHistory) > codeHistoryCapacity:
+                        codeHistory.popleft()
+                    
                     currentCode = ""
 
                     if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:
@@ -188,6 +195,39 @@ class HuffmanDecoder(object):
                         
                         content: bytearray = byteWriter.PopContent()
                         outFile.write(content)
+
+            # if self.m_paddingZeros > 0 and len(currentCode) != self.m_paddingZeros:
+            #     currentZeros: int = len(currentCode)
+                
+            #     if self.m_debug:
+            #         self.m_logger.debug(f"Left zero mismatch! Current zero count: {currentZeros}")
+                
+            #     while currentZeros != self.m_paddingZeros:
+            #         code = codeHistory[-1]
+            #         codeHistory.pop()
+                    
+            #         if self.m_debug:
+            #             self.m_logger.debug(f"Popped code history. Last code element in history: {code}")
+
+            #         assert '1' not in code, "Found 1 in code"
+
+            #         currentZeros += len(code)
+
+            #         byteWriter.Undo()
+
+            #         if self.m_debug:
+            #             self.m_logger.debug(f"ByteWriter.Undo(). Current zero count: {currentZeros}")
+            
+            # lastCode = codeHistory[-1]
+
+            # if self.m_debug:
+            #     self.m_logger.debug(f"Last code: {lastCode}")
+            
+            # if byteWriter.m_leftToWriteBits != 0:
+            #     if self.m_debug:
+            #         self.m_logger.debug(f"leftToWriteBits != 0. Need to undo last byte")
+
+            #     byteWriter.Undo()
 
             if len(byteWriter.m_buffer) > 0:
                 content: bytearray = byteWriter.PopContent(getAll=True)

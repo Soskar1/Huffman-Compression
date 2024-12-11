@@ -20,7 +20,7 @@ class HuffmanEncoder(object):
 
         self.m_debug: bool = debug
 
-        self.m_leftZeros: int = 0
+        self.m_paddingZeros: int = 0
         
         self.m_logger: logging.Logger = logging.getLogger(__name__)
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -109,11 +109,23 @@ class HuffmanEncoder(object):
         
         self.EncodeSourceFile(byteWriter)
         self.m_outFile.close()
-        
+
+        # Find byte with padding zeros
+        for byte in self.m_bytePopularity.keys():
+            byteInt: int = int(byte[1], 2)
+            if byte[0] != byteInt:
+                if self.m_debug:
+                    self.m_logger.debug(f"Found byte with padding zeros: {byte[1]}. True byte value: {byte[0]:0{self.m_processBits}b}")
+
+                while byte[0] != byteInt:
+                    byteInt >>= 1
+                    self.m_paddingZeros += 1
+                break
+
         # Need to add info about zero's at the end of file
-        if self.m_leftZeros > 0:
+        if self.m_paddingZeros > 0:
             if self.m_debug:
-                self.m_logger.debug(f"Byte writer has {self.m_leftZeros} bits left")
+                self.m_logger.debug(f"Byte writer has {self.m_paddingZeros} padding zeros")
             
             with open(self.m_outFilePath, "r+b") as outFile:
                 firstByte: int = int.from_bytes(outFile.read(1), byteorder="big")
@@ -121,7 +133,7 @@ class HuffmanEncoder(object):
                 if self.m_debug:
                     self.m_logger.debug(f"First byte: {firstByte:08b}")
                 
-                firstByte |= self.m_leftZeros
+                firstByte |= self.m_paddingZeros
                 
                 if self.m_debug:
                     self.m_logger.debug(f"Updated to: {firstByte:08b}")
@@ -149,8 +161,9 @@ class HuffmanEncoder(object):
             if self.m_debug:
                  self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeaderDebug}")
             
-            byteWriter.WriteBitsFromByte(node.m_byte[0], self.m_processBits)
-            self.m_huffmanHeaderDebug += bin(node.m_byte[0])[2:]
+            byteToWrite: int = int(node.m_byte[1], 2)
+            byteWriter.WriteBitsFromByte(byteToWrite, self.m_processBits)
+            self.m_huffmanHeaderDebug += node.m_byte[1]
         
         if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
             if self.m_debug:
@@ -204,7 +217,7 @@ class HuffmanEncoder(object):
                     self.m_outFile.write(content)
 
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
-            self.m_leftZeros = byteWriter.m_leftToWriteBits
+            self.m_paddingZeros = byteWriter.m_leftToWriteBits
             byteWriter.UpdateBuffer()
 
         content = byteWriter.PopContent(getAll=True)
