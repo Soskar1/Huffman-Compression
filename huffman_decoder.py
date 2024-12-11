@@ -75,15 +75,6 @@ class HuffmanDecoder(object):
         self.m_processBits += 2
         self.m_logger.info(f"processBits: {self.m_processBits}")
 
-        # Read unique characters (processBits bits) + 1
-        uniqueCharacterCount: int = 0
-        for _ in range(self.m_processBits):
-            uniqueCharacterCount <<= 1
-            uniqueCharacterCount |= self.m_byteReader.ReadBit()
-
-        self.m_logger.info(f"Decoder knows that {self.m_srcFilePath} have {uniqueCharacterCount + 1} unique characters")
-        uniqueCharacterCount += 2
-
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
         def TryToUpdateBuffer():
@@ -104,7 +95,7 @@ class HuffmanDecoder(object):
 
             return result
 
-        while uniqueCharacterCount > 0:
+        while True:
             status: int = self.m_byteReader.ReadBit()
             newNode: binary_tree.Node = binary_tree.Node()
             if status == 0:
@@ -174,7 +165,6 @@ class HuffmanDecoder(object):
                         self.m_logger.debug(f"Found {self.m_endOfFile}")
                 
                 newNode.m_bytes = textResult
-                uniqueCharacterCount -= 1
 
                 huffmanTreeDebug += textResult
                 
@@ -188,6 +178,10 @@ class HuffmanDecoder(object):
                     while currentNode.m_left != None and currentNode.m_right != None and currentNode.m_parent != None:
                         currentNode.m_bytes = currentNode.m_left.m_bytes + currentNode.m_right.m_bytes
                         currentNode = currentNode.m_parent
+
+                    if currentNode.m_parent == None and currentNode.m_left != None and currentNode.m_right != None:
+                        # On root. End tree construction
+                        break
             elif status == -1: # Reached end of buffer. Update buffer
                 if self.m_debug:
                     self.m_logger.debug("ReadBit. Updating buffer")

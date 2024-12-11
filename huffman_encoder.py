@@ -97,11 +97,6 @@ class HuffmanEncoder(object):
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
 
         byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4) 
-        
-        uniqueCharacters: int = len(self.m_huffmanCode.keys()) - 2
-        self.m_logger.info(f"Encoder encountered {uniqueCharacters + 1} unique characters.")
-        
-        byteWriter.WriteBitsFromByte(uniqueCharacters, self.m_processBits)
 
         self.m_logger.info(f"Writing huffman header...")
         self.EncodeHuffmanHeader(self.m_huffmanTreeRootNode, byteWriter)
