@@ -165,6 +165,7 @@ class HuffmanEncoder(object):
             self.EncodeHuffmanHeader(node.m_right, byteWriter)
             
         if node.IsLeaf():
+            self.m_huffmanHeaderDebug += '1'
             byteWriter.WriteBit(1)
 
             if self.m_debug:

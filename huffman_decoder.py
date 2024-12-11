@@ -86,10 +86,12 @@ class HuffmanDecoder(object):
 
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
-        def TryToUpdateBuffer():
+        def TryToUpdateBuffer() -> bool:
             if not self.UpdateReadBuffer():
                 self.m_logger.error(endOfBufferErrorMessage)
                 assert False, endOfBufferErrorMessage
+
+            return True
 
         while True:
             status: int = self.m_byteReader.ReadBit()
@@ -126,7 +128,7 @@ class HuffmanDecoder(object):
                     byte |= result
                 
                 newNode.m_byte = byte
-                huffmanTreeDebug += bin(byte)[2:]
+                huffmanTreeDebug += bin(byte)[2:].rjust(self.m_processBits, '0')
                 
                 if self.m_debug:
                     self.m_logger.debug(f"Read {newNode.m_byte} from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
