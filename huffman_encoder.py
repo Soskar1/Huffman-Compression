@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-import binary_tree, byte_analyzer, byte_reader, byte_writer, file_compression_config
+import binary_tree, byte_analyzer, byte_reader, byte_writer
 import argparse, io, logging, sys, time
 
 class HuffmanEncoder(object):
@@ -17,7 +17,6 @@ class HuffmanEncoder(object):
         self.m_huffmanTreeRootNode: binary_tree.Node = None
         self.m_huffmanCode: Dict[str, str] = {}
         self.m_huffmanHeaderDebug: str = ""
-        self.m_endOfFile: str = file_compression_config.ENF_OF_FILE
 
         self.m_debug: bool = debug
         
@@ -32,7 +31,6 @@ class HuffmanEncoder(object):
             for byte in sorted(self.m_bytePopularity.keys()):
                 self.m_logger.debug(f"{byte} | {self.m_bytePopularity[byte]}")
         
-        self.m_bytePopularity[self.m_endOfFile] = 1
         self.ConstructHuffmanTree()
 
         self.m_logger.info("Constructing Huffman Code...")
@@ -205,12 +203,6 @@ class HuffmanEncoder(object):
                         
                         content = byteWriter.PopContent()
                         self.m_outFile.write(content)
-
-        if self.m_debug:
-            self.m_logger.debug(f"Adding {self.m_endOfFile}")
-        
-        for bit in self.m_huffmanCode[self.m_endOfFile]:
-            byteWriter.WriteBit(int(bit))
 
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
             byteWriter.UpdateBuffer()

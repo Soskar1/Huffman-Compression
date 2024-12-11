@@ -1,1 +1,0 @@
-ENF_OF_FILE: str = "__EOF__"

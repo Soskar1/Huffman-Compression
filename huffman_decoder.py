@@ -1,6 +1,6 @@
 from typing import Dict
 
-import binary_tree, byte_reader, byte_writer, file_compression_config
+import binary_tree, byte_reader, byte_writer
 import argparse, io, logging, sys, time
 
 class HuffmanDecoder(object):
@@ -16,8 +16,6 @@ class HuffmanDecoder(object):
         self.m_huffmanTreeRootNode: binary_tree.Node = binary_tree.Node()
         self.m_huffmanCode: Dict[str, str] = {}
         
-        self.m_endOfFile: str = file_compression_config.ENF_OF_FILE
-
         self.m_processBits: int = 0
 
         self.m_debug: bool = debug
@@ -140,32 +138,7 @@ class HuffmanDecoder(object):
                     assert result != -1, "Something wrong"
                     textResult += chr(result)
                 
-                initialResult: str = textResult
-                # Decoding __EOF__
-                if textResult in self.m_endOfFile:
-                    if self.m_debug:
-                        self.m_logger.debug(f'Found "{textResult}". It may be a part of {self.m_endOfFile}. Decoder will try to investigate it')
-                    
-                    byteReaderState: byte_reader.ByteReaderState = self.m_byteReader.SaveByteReaderState()
-                    
-                    for _ in range(len(self.m_endOfFile) - 1 - (len(textResult) - 1)):
-                        result = ReadByteWithRetry()
-                        
-                        textResult += chr(result)
-                        if not textResult in self.m_endOfFile:
-                            if self.m_debug:
-                                self.m_logger.debug(f"Investigation failed. Returning ByteReader to the previous state. Bad endOfFile={textResult}")
-                            
-                            self.m_byteReader.LoadByteReaderStat(byteReaderState)
-                            textResult = initialResult
-                            break
-                    
-                if textResult == self.m_endOfFile:
-                    if self.m_debug:
-                        self.m_logger.debug(f"Found {self.m_endOfFile}")
-                
                 newNode.m_bytes = textResult
-
                 huffmanTreeDebug += textResult
                 
                 if self.m_debug:
@@ -204,7 +177,6 @@ class HuffmanDecoder(object):
 
     def DecodeSourceFile(self) -> None:
         currentCode: str = ""
-        lastByte: int = 0
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter()
 
         self.m_logger.info("Decoding...")
@@ -226,19 +198,6 @@ class HuffmanDecoder(object):
                     if self.m_debug:
                         self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{toWrite}"')
                     
-                    if toWrite == self.m_endOfFile:
-                        if self.m_debug:
-                            self.m_logger.debug("Reached EOF")
-
-                        if byteWriter.m_leftToWriteBits != 8:
-                            if self.m_debug:
-                                self.m_logger.debug("Need to fix last byte!")
-                            
-                            byteWriter.MoveBack()
-                            byteWriter.WriteBitsFromByte(lastByte, byteWriter.m_leftToWriteBits)
-                        
-                        break
-                    
                     byte: int = 0
                     bitsToWrite = self.m_processBits
 
@@ -249,7 +208,6 @@ class HuffmanDecoder(object):
                         byteWriter.WriteByte(byte)
                         
                         if len(toWrite) == 1:
-                            lastByte = byte
                             currentCode = ""
                             continue
                         
@@ -259,7 +217,6 @@ class HuffmanDecoder(object):
                     byteWriter.WriteBitsFromByte(byte, bitsToWrite)
                     
                     currentCode = ""
-                    lastByte = byte
 
                     if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:
                         if self.m_debug:
