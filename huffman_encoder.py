@@ -19,6 +19,8 @@ class HuffmanEncoder(object):
         self.m_huffmanHeaderDebug: str = ""
 
         self.m_debug: bool = debug
+
+        self.m_leftZeros: int = 0
         
         self.m_logger: logging.Logger = logging.getLogger(__name__)
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -94,23 +96,46 @@ class HuffmanEncoder(object):
         self.m_outFile: io.BufferedWriter = open(self.m_outFilePath, "wb")
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(debug=self.m_debug)
 
-        byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4) 
+        ################ FIRST BYTE INFO
+        byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4)
+        # Leaving space for amount of zero's at the end of file. Max value = 8
+        for _ in range(4):
+            byteWriter.WriteBit(0)
+        ################
 
         self.m_logger.info(f"Writing huffman header...")
         self.EncodeHuffmanHeader(self.m_huffmanTreeRootNode, byteWriter)
-        # self.m_logger.info(f"Header: {self.m_huffmanHeaderDebug}")
+        self.m_logger.info(f"Header: {self.m_huffmanHeaderDebug}")
         
         self.EncodeSourceFile(byteWriter)
-        
         self.m_outFile.close()
+        
+        # Need to add info about zero's at the end of file
+        if self.m_leftZeros > 0:
+            if self.m_debug:
+                self.m_logger.debug(f"Byte writer has {self.m_leftZeros} bits left")
+            
+            with open(self.m_outFilePath, "r+b") as outFile:
+                firstByte: int = int.from_bytes(outFile.read(1), byteorder="big")
+                
+                if self.m_debug:
+                    self.m_logger.debug(f"First byte: {firstByte:08b}")
+                
+                firstByte |= self.m_leftZeros
+                
+                if self.m_debug:
+                    self.m_logger.debug(f"Updated to: {firstByte:08b}")
+                
+                outFile.seek(0)
+                outFile.write(bytearray([firstByte]))
 
     def EncodeHuffmanHeader(self, node: binary_tree.Node, byteWriter: byte_writer.ByteWriter) -> None:
         if not node.IsLeaf() and node.m_parent != None:
-            # self.m_huffmanHeaderDebug += '0'
+            self.m_huffmanHeaderDebug += '0'
             byteWriter.WriteBit(0)
             
-            # if self.m_debug:
-            #     self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeaderDebug}")
+            if self.m_debug:
+                self.m_logger.debug(f"Appended 0 to header. Current header = {self.m_huffmanHeaderDebug}")
         
         if node.m_left != None:
             self.EncodeHuffmanHeader(node.m_left, byteWriter)
@@ -121,11 +146,11 @@ class HuffmanEncoder(object):
         if node.IsLeaf():
             byteWriter.WriteBit(1)
 
-            # if self.m_debug:
-            #     self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeaderDebug}")
+            if self.m_debug:
+                 self.m_logger.debug(f"Appended 1 to header. Current header = {self.m_huffmanHeaderDebug}")
             
             byteWriter.WriteBitsFromByte(node.m_byte[0], self.m_processBits)
-            # self.m_huffmanHeaderDebug += node.m_byte
+            self.m_huffmanHeaderDebug += bin(node.m_byte[0])[2:]
         
         if len(byteWriter.m_buffer) >= self.m_outMaxBufferLength:
             if self.m_debug:
@@ -179,6 +204,7 @@ class HuffmanEncoder(object):
                     self.m_outFile.write(content)
 
         if byteWriter.m_leftToWriteBits != byteWriter.m_maxBits:
+            self.m_leftZeros = byteWriter.m_leftToWriteBits
             byteWriter.UpdateBuffer()
 
         content = byteWriter.PopContent(getAll=True)

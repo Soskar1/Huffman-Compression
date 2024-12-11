@@ -17,6 +17,7 @@ class HuffmanDecoder(object):
         self.m_huffmanCode: Dict[str, str] = {}
         
         self.m_processBits: int = 0
+        self.m_leftZeros: int = 0
 
         self.m_debug: bool = debug
         self.m_logger: logging.Logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class HuffmanDecoder(object):
 
     def Run(self) -> None:
         self.m_srcFile = open(self.m_srcFilePath, "rb")
-        self.DecodeHuffmanTree()
+        self.DecodeHeader()
 
         self.m_logger.info("Constructing Huffman Code...")
         self.ConstructHuffmanCode(self.m_huffmanTreeRootNode)
@@ -58,20 +59,24 @@ class HuffmanDecoder(object):
         self.m_byteReader.SetBuffer(buffer)
         return True
 
-    def DecodeHuffmanTree(self) -> None:
+    def DecodeHeader(self) -> None:
         self.m_logger.info("Decoding Huffman Tree...")
-        # huffmanTreeDebug: str = ""
+        huffmanTreeDebug: str = ""
         endOfBufferErrorMessage: str = "Reached end of buffer while decoding Huffman Tree"
 
         self.UpdateReadBuffer()
         
-        # Read process bits (4 bits) + 2
-        for _ in range(4):
-            self.m_processBits <<= 1
-            self.m_processBits |= self.m_byteReader.ReadBit()
-        
-        self.m_processBits += 2
-        self.m_logger.info(f"processBits: {self.m_processBits}")
+        # First byte info:
+        # First 4 bits = process Bits
+        # Last 4 bits = left zeros at the end of file
+        firstByte: int = self.m_byteReader.ReadByte()
+        self.m_processBits: int = (firstByte >> 4) + 2
+        self.m_leftZeros: int = firstByte & 0b1111
+
+        if self.m_debug:
+            self.m_logger.debug(f"First byte: {firstByte:08b}")
+            self.m_logger.debug(f"processBits: {self.m_processBits}")
+            self.m_logger.debug(f"Zero's at the end of file: {self.m_leftZeros}")
 
         currentNode: binary_tree.Node = self.m_huffmanTreeRootNode
         
@@ -84,7 +89,7 @@ class HuffmanDecoder(object):
             status: int = self.m_byteReader.ReadBit()
             newNode: binary_tree.Node = binary_tree.Node()
             if status == 0:
-                # huffmanTreeDebug += '0'
+                huffmanTreeDebug += '0'
 
                 if currentNode.m_left == None:
                     currentNode.AddLeft(newNode)
@@ -93,13 +98,13 @@ class HuffmanDecoder(object):
                     currentNode.AddRight(newNode)
                     currentNode = newNode
                 
-                # if self.m_debug:
-                #     self.m_logger.debug(f"Read 0 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                if self.m_debug:
+                    self.m_logger.debug(f"Read 0 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
             elif status == 1: # Construct new Node with next byte value
-                # huffmanTreeDebug += '1'
+                huffmanTreeDebug += '1'
                 
-                # if self.m_debug:
-                #     self.m_logger.debug(f"Read 1 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                if self.m_debug:
+                    self.m_logger.debug(f"Read 1 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
                 
                 byte: int = 0
                 for _ in range(self.m_processBits):
@@ -115,10 +120,10 @@ class HuffmanDecoder(object):
                     byte |= result
                 
                 newNode.m_byte = byte
-                # huffmanTreeDebug += textResult
+                huffmanTreeDebug += bin(byte)[2:]
                 
-                # if self.m_debug:
-                #     self.m_logger.debug(f"Read {newNode.m_byte} from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                if self.m_debug:
+                    self.m_logger.debug(f"Read {newNode.m_byte} from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
 
                 if currentNode.m_left == None:
                     currentNode.AddLeft(newNode)
@@ -129,7 +134,7 @@ class HuffmanDecoder(object):
                         currentNode = currentNode.m_parent
 
                     if currentNode.m_parent == None and currentNode.m_left != None and currentNode.m_right != None:
-                        # On root. End tree construction
+                        # Reached root. Need to end tree construction
                         break
             elif status == -1: # Reached end of buffer. Update buffer
                 if self.m_debug:
@@ -137,7 +142,7 @@ class HuffmanDecoder(object):
                 
                 TryToUpdateBuffer()
         
-        # self.m_logger.info(f"Decoded Huffman Tree: {huffmanTreeDebug}")
+        self.m_logger.info(f"Decoded Huffman Tree: {huffmanTreeDebug}")
 
     def ConstructHuffmanCode(self, node: binary_tree.Node, currentCode: str = "") -> None:
         left, right = node.m_left, node.m_right
