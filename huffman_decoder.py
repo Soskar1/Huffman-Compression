@@ -32,7 +32,7 @@ class HuffmanDecoder(object):
         self.m_logger.info("Huffman Code | Character")
         for code in self.m_huffmanCode.keys():
             byte = self.m_huffmanCode[code]
-            self.m_logger.info(f"{code} | {byte}")
+            self.m_logger.info(f"{code} | {byte:0{self.m_processBits}b}")
 
         startTime: float = time.time()
         self.DecodeSourceFile()
@@ -60,7 +60,7 @@ class HuffmanDecoder(object):
 
     def DecodeHuffmanTree(self) -> None:
         self.m_logger.info("Decoding Huffman Tree...")
-        huffmanTreeDebug: str = ""
+        # huffmanTreeDebug: str = ""
         endOfBufferErrorMessage: str = "Reached end of buffer while decoding Huffman Tree"
 
         self.UpdateReadBuffer()
@@ -80,24 +80,11 @@ class HuffmanDecoder(object):
                 self.m_logger.error(endOfBufferErrorMessage)
                 assert False, endOfBufferErrorMessage
 
-        def ReadByteWithRetry() -> int:
-            result: int = self.m_byteReader.ReadByte()
-
-            if result == -1: # Reached end of buffer. Update Buffer
-                if self.m_debug:
-                    self.m_logger.debug("ReadByte. Updating buffer")
-
-                TryToUpdateBuffer()
-                
-                result: int = self.m_byteReader.ReadByte()
-
-            return result
-
         while True:
             status: int = self.m_byteReader.ReadBit()
             newNode: binary_tree.Node = binary_tree.Node()
             if status == 0:
-                huffmanTreeDebug += '0'
+                # huffmanTreeDebug += '0'
 
                 if currentNode.m_left == None:
                     currentNode.AddLeft(newNode)
@@ -106,50 +93,39 @@ class HuffmanDecoder(object):
                     currentNode.AddRight(newNode)
                     currentNode = newNode
                 
-                if self.m_debug:
-                    self.m_logger.debug(f"Read 0 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                # if self.m_debug:
+                #     self.m_logger.debug(f"Read 0 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
             elif status == 1: # Construct new Node with next byte value
-                huffmanTreeDebug += '1'
+                # huffmanTreeDebug += '1'
                 
-                if self.m_debug:
-                    self.m_logger.debug(f"Read 1 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                # if self.m_debug:
+                #     self.m_logger.debug(f"Read 1 from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
                 
-                textResult: str = ""
+                byte: int = 0
+                for _ in range(self.m_processBits):
+                    result: int = self.m_byteReader.ReadBit()
 
-                # Check byte size
-                if self.m_processBits > 8:
-                    bit: int = self.m_byteReader.ReadBit()
-
-                    # size 1
-                    if bit == 0:
-                        result: int = ReadByteWithRetry()
-                        assert result != -1, "Something wrong"
-                        textResult += chr(result)
-                    elif bit == 1: # size 2
-                        result: int = ReadByteWithRetry()
-                        assert result != -1, "Something wrong"
-                        textResult += chr(result)
-
-                        result: int = ReadByteWithRetry()
-                        assert result != -1, "Something wrong"
-                        textResult += chr(result)
-                else:
-                    result: int = ReadByteWithRetry()
-                    assert result != -1, "Something wrong"
-                    textResult += chr(result)
+                    if result == -1:
+                        if TryToUpdateBuffer():
+                            result = self.m_byteReader.ReadBit()
+                        else:
+                            assert False, "Something is wrong"
+                        
+                    byte <<= 1
+                    byte |= result
                 
-                newNode.m_bytes = textResult
-                huffmanTreeDebug += textResult
+                newNode.m_byte = byte
+                # huffmanTreeDebug += textResult
                 
-                if self.m_debug:
-                    self.m_logger.debug(f"Read {newNode.m_bytes} from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
+                # if self.m_debug:
+                #     self.m_logger.debug(f"Read {newNode.m_byte} from HuffmanTree. Current huffman tree code: {huffmanTreeDebug}")
 
                 if currentNode.m_left == None:
                     currentNode.AddLeft(newNode)
                 elif currentNode.m_right == None:
                     currentNode.AddRight(newNode)
                     while currentNode.m_left != None and currentNode.m_right != None and currentNode.m_parent != None:
-                        currentNode.m_bytes = currentNode.m_left.m_bytes + currentNode.m_right.m_bytes
+                        currentNode.m_byte = currentNode.m_left.m_byte + currentNode.m_right.m_byte
                         currentNode = currentNode.m_parent
 
                     if currentNode.m_parent == None and currentNode.m_left != None and currentNode.m_right != None:
@@ -161,7 +137,7 @@ class HuffmanDecoder(object):
                 
                 TryToUpdateBuffer()
         
-        self.m_logger.info(f"Decoded Huffman Tree: {huffmanTreeDebug}")
+        # self.m_logger.info(f"Decoded Huffman Tree: {huffmanTreeDebug}")
 
     def ConstructHuffmanCode(self, node: binary_tree.Node, currentCode: str = "") -> None:
         left, right = node.m_left, node.m_right
@@ -173,7 +149,7 @@ class HuffmanDecoder(object):
             self.ConstructHuffmanCode(right, currentCode + '1')
 
         if node.IsLeaf(): 
-            self.m_huffmanCode[currentCode] = node.m_bytes
+            self.m_huffmanCode[currentCode] = node.m_byte
 
     def DecodeSourceFile(self) -> None:
         currentCode: str = ""
@@ -193,29 +169,12 @@ class HuffmanDecoder(object):
                     self.m_logger.debug(f"Current code: {currentCode}")
                 
                 if currentCode in self.m_huffmanCode:
-                    toWrite: str = self.m_huffmanCode[currentCode]
+                    byte: int = self.m_huffmanCode[currentCode]
                     
                     if self.m_debug:
-                        self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{toWrite}"')
-                    
-                    byte: int = 0
-                    bitsToWrite = self.m_processBits
+                        self.m_logger.debug(f'Found {currentCode} in huffman code dictionary. Decoded character: "{byte:0{self.m_processBits}b}"')
 
-                    if self.m_processBits <= 8:
-                        byte = ord(toWrite)
-                    else:
-                        byte = ord(toWrite[0])
-                        byteWriter.WriteByte(byte)
-                        
-                        if len(toWrite) == 1:
-                            currentCode = ""
-                            continue
-                        
-                        byte = ord(toWrite[1])
-                        bitsToWrite -= 8
-
-                    byteWriter.WriteBitsFromByte(byte, bitsToWrite)
-                    
+                    byteWriter.WriteBitsFromByte(byte, self.m_processBits)
                     currentCode = ""
 
                     if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:

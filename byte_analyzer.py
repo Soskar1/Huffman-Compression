@@ -10,8 +10,8 @@ class ByteAnalyzer(object):
         self.m_processBits: int = processBits
         self.m_debug: bool = debug
 
-    def Analyze(self) -> Dict[str, int]:
-        bytePopularity: Dict[str, int] = {}
+    def Analyze(self) -> Dict[int, int]:
+        bytePopularity: Dict[int, int] = {}
         byteReader: byte_reader.ByteReader = byte_reader.ByteReader(debug=self.m_debug)
         srcFile: io.BufferedReader = open(self.m_fileName, "rb")
         
@@ -24,73 +24,25 @@ class ByteAnalyzer(object):
             byteReader.SetBuffer(buffer)
             return True
 
-        def ConstructByte(bitsToProcess: int) -> chr:
-            byte: chr = 0b0
-            readBits = 0
-            for _ in range(bitsToProcess):
+        UpdateBuffer()
+        while byteReader.CanRead() or UpdateBuffer():
+            byte: int = 0
+            for _ in range(self.m_processBits):
                 result: int = byteReader.ReadBit()
-                
+
                 if result == -1:
                     if UpdateBuffer():
                         result = byteReader.ReadBit()
                     else:
-                        if readBits > 0:
-                            return byte
-                        else:
-                            return -1
+                        break
                 
                 byte <<= 1
                 byte |= result
-                readBits += 1
             
-            return byte
+            if byte not in bytePopularity:
+                bytePopularity[byte] = 0
 
-        def ReadByte() -> int:
-            result: int = byteReader.ReadByte()
-                    
-            if result == -1:
-                if UpdateBuffer():
-                    result = byteReader.ReadByte()
-            
-            return result                    
-
-        UpdateBuffer()
-        while byteReader.CanRead() or UpdateBuffer():
-            byteToAdd: str = ""
-            if self.m_processBits % 8 == 0:
-                for _ in range((int)(self.m_processBits / 8)):
-                    result: int = ReadByte()
-                    if result == -1:
-                        break
-                    
-                    byteToAdd += chr(result)
-            elif (int)(self.m_processBits / 8) > 0:
-                numberOfBytes: int = (int)(self.m_processBits / 8)
-                bitsToProcess: int = self.m_processBits - numberOfBytes * 8
-                
-                for _ in range(numberOfBytes):
-                    result: int = ReadByte()
-                    if result == -1:
-                        bitsToProcess = byteReader.m_leftToReadBits
-                        break
-                    
-                    byteToAdd += chr(result)
-                
-                if bitsToProcess > 0:
-                    result: int = ConstructByte(bitsToProcess)
-                    if result != -1:
-                        byteToAdd += chr(result)
-            else:
-                result: int = ConstructByte(self.m_processBits)
-                if result != -1:
-                    byteToAdd = chr(result)
-            
-            if len(byteToAdd) > 0:
-                if byteToAdd not in bytePopularity:
-                    bytePopularity[byteToAdd] = 0
-
-                bytePopularity[byteToAdd] += 1
-            byteToAdd = ""
+            bytePopularity[byte] += 1
 
         srcFile.close()
         return bytePopularity

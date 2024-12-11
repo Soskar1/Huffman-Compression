@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 class Node(object):
-    def __init__(self, bytes: str = "", count: int = 0):
+    def __init__(self, byte: int = 0, count: int = 0):
         self.m_left: Node = None
         self.m_right: Node = None
         self.m_parent: Node = None
         self.m_count: int = count
-        self.m_bytes: str = bytes
+        self.m_byte: int = byte
 
     def AddRight(self, node: Node) -> None:
         self.m_right = node
