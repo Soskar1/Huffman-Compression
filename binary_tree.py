@@ -36,9 +36,11 @@ class AdaptiveHuffmanTree(object):
     def AddSymbol(self, symbol: int) -> None:
         if symbol not in self.m_symbolNodes:
             self.__AddNewSymbol(symbol)
-            self.__Update(self.m_nyt.m_parent)
+            if self.m_nyt.m_parent != self.m_root:
+                self.__Update(self.m_nyt.m_parent)
         else:
             symbolNode: Node = self.m_symbolNodes[symbol]
+            symbolNode.m_parent.m_count += 1
             symbolNode.m_count += 1
             self.__Update(symbolNode)
     
@@ -79,9 +81,43 @@ class AdaptiveHuffmanTree(object):
 
     def __Update(self, fromNode: Node) -> None:
         currentNode: Node = fromNode
+        
+        while currentNode.m_parent.m_parent != None:
+            oneParent = currentNode.m_parent
+            twoParent = oneParent.m_parent
+            if currentNode.m_count > twoParent.m_right.m_count:
+                tmp = twoParent.m_right
+                
+                twoParent.m_right = currentNode
+                currentNode.m_parent = twoParent
+                
+                if oneParent.m_left == currentNode:
+                    oneParent.m_left = tmp
+                elif oneParent.m_right == currentNode:
+                    oneParent.m_right = tmp
+                
+                tmp.m_parent = oneParent
+                
+            elif currentNode.m_count > twoParent.m_left.m_count:
+                tmp = twoParent.m_left
+                
+                twoParent.m_left = currentNode
+                currentNode.m_parent = twoParent
+                
+                if oneParent.m_left == currentNode:
+                    oneParent.m_left = tmp
+                elif oneParent.m_right == currentNode:
+                    oneParent.m_right = tmp
+                
+                tmp.m_parent = oneParent
+            
+            oneParent.m_count = oneParent.m_left.m_count + oneParent.m_right.m_count
+            twoParent.m_count = twoParent.m_left.m_count + twoParent.m_right.m_count
+            currentNode = oneParent
+        
+        currentNode = fromNode
         while currentNode.m_parent != None:
             parent: Node = currentNode.m_parent
-            parent.m_count += 1
             
             if parent.m_left.m_count > parent.m_right.m_count:
                 tmp = parent.m_left
