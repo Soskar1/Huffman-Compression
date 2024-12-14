@@ -1,4 +1,4 @@
-import argparse, logging, sys, time
+import argparse, collections, logging, sys, time
 
 import binary_tree, byte_reader
 
@@ -27,6 +27,9 @@ class AdaptiveHuffmanDecoder(object):
     def __Decode(self) -> None:
         byteReader: byte_reader.ByteReader = byte_reader.ByteReader(debug=self.m_debug)
         outBuffer: bytearray = bytearray()
+        codeHistory: collections.deque = collections.deque([])
+        codeHistoryCapacity: int = 7
+
         with open(self.m_outFilePath, "wb") as outFile:
             with open(self.m_srcFilePath, "rb") as srcFile:
                 def UpdateBuffer() -> bool:
@@ -39,7 +42,17 @@ class AdaptiveHuffmanDecoder(object):
                     return True
             
                 UpdateBuffer()
-                            
+
+                # 3 bits = padding zeros
+                paddingZeros: int = 0
+                for _ in range(3):
+                    bit: int = byteReader.ReadBit()
+                    paddingZeros <<= 1
+                    paddingZeros |= bit
+
+                if self.m_debug:
+                    self.m_logger.debug(f"Padding zero's: {paddingZeros}")
+
                 # TODO: get tree reconstruction interval value from the first byte
                 tree: binary_tree.AdaptiveHuffmanTree = binary_tree.AdaptiveHuffmanTree()
                 
@@ -76,6 +89,7 @@ class AdaptiveHuffmanDecoder(object):
                         
                         outBuffer.append(result)
                         tree.AddSymbol(result)
+                        codeHistory.append(currentCode)
                         currentCode = ""
                     elif symbol >= 0:
                         # Decode symbol. Add to the tree
@@ -84,7 +98,11 @@ class AdaptiveHuffmanDecoder(object):
                         
                         outBuffer.append(symbol)
                         tree.AddSymbol(symbol)
+                        codeHistory.append(currentCode)
                         currentCode = ""
+                    
+                    if len(codeHistory) > codeHistoryCapacity:
+                        codeHistory.popleft()
                     
                     if len(outBuffer) > self.m_outMaxBufferLength:
                         if self.m_debug:
@@ -92,6 +110,21 @@ class AdaptiveHuffmanDecoder(object):
                         
                         outFile.write(outBuffer)
                         outBuffer.clear()
+
+                assert '1' not in currentCode
+
+                paddingZeros -= len(currentCode)
+                while paddingZeros > 0:
+                    if self.m_debug:
+                        self.m_logger.debug(f"{paddingZeros} padding zeros left")
+
+                    lastCode = codeHistory[-1]
+                    codeHistory.pop()
+
+                    assert '1' not in lastCode
+
+                    paddingZeros -= len(lastCode)
+                    outBuffer = outBuffer[:-1]
             
             if len(outBuffer) > 0:
                 outFile.write(outBuffer)
