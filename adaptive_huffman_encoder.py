@@ -1,4 +1,4 @@
-import argparse, logging, sys
+import argparse, logging, sys, time
 
 import binary_tree, byte_writer
 
@@ -19,8 +19,16 @@ class AdaptiveHuffmanEncoder(object):
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
     
     def Run(self) -> None:
-        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(self.m_debug)
+        self.m_logger.info("Encoding...")
         
+        startTime: float = time.time()
+        self.__Encode()
+        endTime: float = time.time()
+        
+        self.m_logger.info(f"Done. Encoding time: {endTime - startTime}s")
+
+    def __Encode(self) -> None:
+        byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(self.m_debug)
         with open(self.m_outFilePath, "wb") as outFile:
             with open(self.m_srcFilePath, "rb") as srcFile:
                 buffer: bytes = srcFile.read(self.m_srcMaxBufferLength)
@@ -30,6 +38,10 @@ class AdaptiveHuffmanEncoder(object):
 
                 for byte in buffer:
                     code: str = self.m_tree.GetHuffmanCode(byte)
+                    
+                    if self.m_debug:
+                        self.m_logger.debug(f"Got {byte:08b}. Huffman code: {code}")
+                    
                     self.m_tree.AddSymbol(byte)
                     
                     byteWriter.WriteBitsFromByte(int(code, 2), len(code))
