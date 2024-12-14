@@ -25,7 +25,10 @@ class Node(object):
 
 class AdaptiveHuffmanTree(object):
     def __init__(self, reconstructionInterval: int = 1):
-        self.m_root: Node = Node(-1, 0)
+        self.m_nytValue = -1
+        self.m_internalNodeValue = -2
+        
+        self.m_root: Node = Node(self.m_nytValue, 0)
         self.m_nyt: Node = self.m_root
         self.m_reconstructionInterval: int = reconstructionInterval # TODO
         self.m_symbolNodes: Dict[int, Node] = {}
@@ -47,11 +50,22 @@ class AdaptiveHuffmanTree(object):
         
         # symbol huffman code
         return self.__ConstructCode(self.m_symbolNodes[symbol])
+
+    def GetSymbol(self, code: str) -> int:
+        currentNode: Node = self.m_root
+        
+        for char in code:
+            if char == '0':
+                currentNode = currentNode.m_left
+            elif char == '1':
+                currentNode = currentNode.m_right
+        
+        return currentNode.m_byte
     
     def __AddNewSymbol(self, symbol: int) -> None:
         newSymbolNode: Node = Node(symbol, 1)
 
-        newParentNode = Node(0, 1)
+        newParentNode = Node(self.m_internalNodeValue, 1)
         newParentNode.m_left = self.m_nyt
         newParentNode.AddRight(newSymbolNode)
         

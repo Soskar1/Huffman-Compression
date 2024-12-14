@@ -31,24 +31,23 @@ class AdaptiveHuffmanEncoder(object):
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(self.m_debug)
         with open(self.m_outFilePath, "wb") as outFile:
             with open(self.m_srcFilePath, "rb") as srcFile:
-                buffer: bytes = srcFile.read(self.m_srcMaxBufferLength)
-                
-                if buffer == b'':
-                    return
+                while (buffer := srcFile.read(self.m_srcMaxBufferLength)) != b'':
+                    for byte in buffer:
+                        code: str = self.m_tree.GetHuffmanCode(byte)
 
-                for byte in buffer:
-                    code: str = self.m_tree.GetHuffmanCode(byte)
-                    
-                    if self.m_debug:
-                        self.m_logger.debug(f"Got {byte:08b}. Huffman code: {code}")
-                    
-                    self.m_tree.AddSymbol(byte)
-                    
-                    byteWriter.WriteBitsFromByte(int(code, 2), len(code))
-                    
-                    if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:
-                        content = byteWriter.PopContent()
-                        outFile.write(content)
+                        if self.m_debug:
+                            self.m_logger.debug(f"Got '{chr(byte)}' ({byte:08b}). Huffman code: {code}")
+
+                        self.m_tree.AddSymbol(byte)
+
+                        byteWriter.WriteBitsFromByte(int(code, 2), len(code))
+
+                        if len(byteWriter.m_buffer) > self.m_outMaxBufferLength:
+                            content = byteWriter.PopContent()
+                            outFile.write(content)
+
+            if byteWriter.m_leftToWriteBits < 8:
+                byteWriter.AppendByteToBuffer()
             
             if len(byteWriter.m_buffer) > 0:
                 content = byteWriter.PopContent(getAll=True)
