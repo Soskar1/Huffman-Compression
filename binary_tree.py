@@ -38,7 +38,16 @@ class AdaptiveHuffmanTree(object):
             symbolNode: Node = self.m_symbolNodes[symbol]
             symbolNode.m_count += 1
             self.__Update(symbolNode)
-
+    
+    def GetHuffmanCode(self, symbol: int) -> str:
+        if symbol not in self.m_symbolNodes:
+            # NYT huffman code + symbol binary
+            nytCode: str = self.__ConstructCode(self.m_nyt)
+            return nytCode + bin(symbol)[2:].zfill(8)
+        
+        # symbol huffman code
+        return self.__ConstructCode(self.m_symbolNodes[symbol])
+    
     def __AddNewSymbol(self, symbol: int) -> None:
         newSymbolNode: Node = Node(symbol, 1)
 
@@ -66,3 +75,16 @@ class AdaptiveHuffmanTree(object):
                 parent.m_right = tmp
 
             currentNode = parent
+    
+    def __ConstructCode(self, currentNode: Node) -> str:
+        code: str = ""
+        while currentNode.m_parent != None:
+            parent: Node = currentNode.m_parent
+            if currentNode == parent.m_left:
+                code += "0"
+            elif currentNode == parent.m_right:
+                code += "1"
+            
+            currentNode = parent
+        
+        return code[::-1]
