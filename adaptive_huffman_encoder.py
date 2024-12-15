@@ -1,4 +1,4 @@
-import argparse, logging, sys, time
+import argparse, logging, os, sys, time
 
 import binary_tree, byte_writer
 
@@ -26,6 +26,11 @@ class AdaptiveHuffmanEncoder(object):
         endTime: float = time.time()
         
         self.m_logger.info(f"Done. Encoding time: {endTime - startTime}s")
+        srcFileSize: int = os.stat(self.m_srcFilePath).st_size
+        outFileSize: int = os.stat(self.m_outFilePath).st_size
+        print(f"Source file '{self.m_srcFilePath}' size {srcFileSize}b, {srcFileSize / 1024}Kb, {srcFileSize / (1024 ** 2)}Mb")
+        print(f"Compressed file '{self.m_outFilePath}' size {outFileSize}b, {outFileSize / 1024}Kb, {outFileSize / (1024 ** 2)}Mb")
+        print(f"Compression ratio: {srcFileSize / outFileSize}")
 
     def __Encode(self) -> None:
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(self.m_debug)

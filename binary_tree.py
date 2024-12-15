@@ -24,14 +24,15 @@ class Node(object):
         return False
 
 class AdaptiveHuffmanTree(object):
-    def __init__(self, reconstructionInterval: int = 1):
+    def __init__(self, reconstructionInterval: int = 0):
         self.m_nytValue = -1
         self.m_internalNodeValue = -2
         
         self.m_root: Node = Node(self.m_nytValue, 0)
         self.m_nyt: Node = self.m_root
-        self.m_reconstructionInterval: int = reconstructionInterval # TODO
         self.m_symbolNodes: Dict[int, Node] = {}
+        self.m_reconstructionInterval: int = reconstructionInterval
+        self.m_untilTreeReconstruction: int = self.m_reconstructionInterval
 
     def AddSymbol(self, symbol: int) -> None:
         if symbol not in self.m_symbolNodes:
@@ -111,20 +112,14 @@ class AdaptiveHuffmanTree(object):
                 
                 tmp.m_parent = oneParent
             
+            if oneParent.m_left.m_count > oneParent.m_right.m_count:
+                tmp = oneParent.m_left
+                oneParent.m_left = oneParent.m_right
+                oneParent.m_right = tmp
+            
             oneParent.m_count = oneParent.m_left.m_count + oneParent.m_right.m_count
             twoParent.m_count = twoParent.m_left.m_count + twoParent.m_right.m_count
             currentNode = oneParent
-        
-        currentNode = fromNode
-        while currentNode.m_parent != None:
-            parent: Node = currentNode.m_parent
-            
-            if parent.m_left.m_count > parent.m_right.m_count:
-                tmp = parent.m_left
-                parent.m_left = parent.m_right
-                parent.m_right = tmp
-
-            currentNode = parent
     
     def __ConstructCode(self, currentNode: Node) -> str:
         code: str = ""
