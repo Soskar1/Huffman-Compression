@@ -42,19 +42,19 @@ class AdaptiveHuffmanDecoder(object):
                     return True
             
                 UpdateBuffer()
-
-                # 3 bits = padding zeros
-                paddingZeros: int = 0
-                for _ in range(3):
-                    bit: int = byteReader.ReadBit()
-                    paddingZeros <<= 1
-                    paddingZeros |= bit
+                
+                # First byte info:
+                # First 5 bits = tree reconstruction interval
+                # Last 3 bits = padding zeros
+                byte: int = byteReader.ReadByte()
+                treeReconstructionInterval: int = (byte >> 3) + 1
+                paddingZeros: int = byte & 0b00000111
 
                 if self.m_debug:
+                    self.m_logger.debug(f"Tree reconstruction interval: {treeReconstructionInterval}")
                     self.m_logger.debug(f"Padding zero's: {paddingZeros}")
 
-                # TODO: get tree reconstruction interval value from the first byte
-                tree: binary_tree.AdaptiveHuffmanTree = binary_tree.AdaptiveHuffmanTree()
+                tree: binary_tree.AdaptiveHuffmanTree = binary_tree.AdaptiveHuffmanTree(treeReconstructionInterval)
                 
                 # Getting first character
                 byte: int = byteReader.ReadByte()

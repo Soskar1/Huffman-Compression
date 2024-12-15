@@ -24,7 +24,7 @@ class Node(object):
         return False
 
 class AdaptiveHuffmanTree(object):
-    def __init__(self, reconstructionInterval: int = 0):
+    def __init__(self, reconstructionInterval: int = 1):
         self.m_nytValue = -1
         self.m_internalNodeValue = -2
         
@@ -81,45 +81,53 @@ class AdaptiveHuffmanTree(object):
         self.m_symbolNodes[symbol] = newSymbolNode
 
     def __Update(self, fromNode: Node) -> None:
-        currentNode: Node = fromNode
+        self.m_untilTreeReconstruction -= 1
         
+        currentNode: Node = fromNode
         while currentNode.m_parent.m_parent != None:
             oneParent = currentNode.m_parent
             twoParent = oneParent.m_parent
-            if currentNode.m_count > twoParent.m_right.m_count:
-                tmp = twoParent.m_right
-                
-                twoParent.m_right = currentNode
-                currentNode.m_parent = twoParent
-                
-                if oneParent.m_left == currentNode:
-                    oneParent.m_left = tmp
-                elif oneParent.m_right == currentNode:
-                    oneParent.m_right = tmp
-                
-                tmp.m_parent = oneParent
-                
-            elif currentNode.m_count > twoParent.m_left.m_count:
-                tmp = twoParent.m_left
-                
-                twoParent.m_left = currentNode
-                currentNode.m_parent = twoParent
-                
-                if oneParent.m_left == currentNode:
-                    oneParent.m_left = tmp
-                elif oneParent.m_right == currentNode:
-                    oneParent.m_right = tmp
-                
-                tmp.m_parent = oneParent
             
-            if oneParent.m_left.m_count > oneParent.m_right.m_count:
-                tmp = oneParent.m_left
-                oneParent.m_left = oneParent.m_right
-                oneParent.m_right = tmp
+            if self.m_untilTreeReconstruction <= 0:
+                if currentNode.m_count > twoParent.m_right.m_count:
+                    tmp = twoParent.m_right
+                    
+                    twoParent.m_right = currentNode
+                    currentNode.m_parent = twoParent
+                    
+                    if oneParent.m_left == currentNode:
+                        oneParent.m_left = tmp
+                    elif oneParent.m_right == currentNode:
+                        oneParent.m_right = tmp
+                    
+                    tmp.m_parent = oneParent
+                    
+                elif currentNode.m_count > twoParent.m_left.m_count:
+                    tmp = twoParent.m_left
+                    
+                    twoParent.m_left = currentNode
+                    currentNode.m_parent = twoParent
+                    
+                    if oneParent.m_left == currentNode:
+                        oneParent.m_left = tmp
+                    elif oneParent.m_right == currentNode:
+                        oneParent.m_right = tmp
+                    
+                    tmp.m_parent = oneParent
             
             oneParent.m_count = oneParent.m_left.m_count + oneParent.m_right.m_count
             twoParent.m_count = twoParent.m_left.m_count + twoParent.m_right.m_count
+            
+            if self.m_untilTreeReconstruction <= 0:
+                if oneParent.m_left.m_count > oneParent.m_right.m_count:
+                    tmp = oneParent.m_left
+                    oneParent.m_left = oneParent.m_right
+                    oneParent.m_right = tmp
+            
             currentNode = oneParent
+        
+        if self.m_untilTreeReconstruction <= 0:
+            self.m_untilTreeReconstruction = self.m_reconstructionInterval
     
     def __ConstructCode(self, currentNode: Node) -> str:
         code: str = ""
