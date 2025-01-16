@@ -12,7 +12,7 @@ class HuffmanDecoder(object):
         self.m_srcMaxBufferLength: int = srcMaxBufferLength
         self.m_outMaxBufferLength: int = outMaxBufferLength
         
-        self.m_byteReader: byte_reader.ByteReader = byte_reader.ByteReader()
+        self.m_byteReader: byte_reader.ByteReader = byte_reader.ByteReader(debug=debug)
         self.m_huffmanTreeRootNode: binary_tree.Node = binary_tree.Node()
         self.m_huffmanCode: Dict[str, str] = {}
         
@@ -74,11 +74,20 @@ class HuffmanDecoder(object):
 
         self.m_processBits += 2
 
-        # Another 5 bits = padding zeros at the end of file
-        for _ in range(5):
+        # 3 bits = padding zeros at the end of file
+        for _ in range(3):
             bit: int = self.m_byteReader.ReadBit()
             self.m_paddingZeros <<= 1
             self.m_paddingZeros |= bit
+        
+        # 4 bits = padding zeros in byte
+        bytePaddingZeros: int = 0
+        for _ in range(4):
+            bit: int = self.m_byteReader.ReadBit()
+            bytePaddingZeros <<= 1
+            bytePaddingZeros |= bit
+        
+        self.m_paddingZeros += bytePaddingZeros
 
         if self.m_debug:
             self.m_logger.debug(f"processBits: {self.m_processBits}")

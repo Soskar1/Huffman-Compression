@@ -99,8 +99,12 @@ class HuffmanEncoder(object):
         # First 4 bits for processBits
         byteWriter.WriteBitsFromByte(self.m_processBits - 2, 4)
         
-        # Leaving space for padding zeros amount at the end of file
-        for _ in range(5):
+        # 3 bits for padding zero's at the end of file
+        for _ in range(3):
+            byteWriter.WriteBit(0)
+        
+        # 4 bits for padding zero's in byte
+        for _ in range(4):
             byteWriter.WriteBit(0)
 
         self.m_logger.info(f"Writing huffman header...")
@@ -109,6 +113,27 @@ class HuffmanEncoder(object):
         
         self.EncodeSourceFile(byteWriter)
         self.m_outFile.close()
+
+        # Need to add info about zero's at the end of file
+        if self.m_paddingZeros > 0:
+            if self.m_debug:
+                self.m_logger.debug(f"Byte writer has {self.m_paddingZeros} padding zeros")
+            
+            with open(self.m_outFilePath, "r+b") as outFile:
+                firstByte: int = int.from_bytes(outFile.read(1), byteorder="big")
+                
+                if self.m_debug:
+                    self.m_logger.debug(f"First byte: {firstByte:08b}")
+                
+                firstByte |= self.m_paddingZeros << 1
+                
+                if self.m_debug:
+                    self.m_logger.debug(f"Updated to: {firstByte:08b}")
+                
+                outFile.seek(0)
+                outFile.write(bytearray([firstByte]))
+
+        self.m_paddingZeros = 0
 
         # Find byte with padding zeros
         for byte in self.m_bytePopularity.keys():
@@ -133,7 +158,7 @@ class HuffmanEncoder(object):
                 if self.m_debug:
                     self.m_logger.debug(f"First byte: {firstByte:08b}")
                 
-                firstByte |= self.m_paddingZeros >> 1
+                firstByte |= self.m_paddingZeros >> 3
                 
                 if self.m_debug:
                     self.m_logger.debug(f"Updated to: {firstByte:08b}")
@@ -142,7 +167,7 @@ class HuffmanEncoder(object):
                 if self.m_debug:
                     self.m_logger.debug(f"Second byte: {secondByte:08b}")
 
-                secondByte |= (self.m_paddingZeros & 0b00001) << 7
+                secondByte |= (self.m_paddingZeros & 0b00000111) << 5
 
                 if self.m_debug:
                     self.m_logger.debug(f"Updated to: {secondByte:08b}")
