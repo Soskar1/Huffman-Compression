@@ -25,6 +25,8 @@ class HuffmanDecoder(object):
 
     def Run(self) -> None:
         self.m_srcFile = open(self.m_srcFilePath, "rb")
+        
+        startTime: float = time.time()
         self.DecodeHeader()
 
         self.m_logger.info("Constructing Huffman Code...")
@@ -35,12 +37,11 @@ class HuffmanDecoder(object):
             byte = self.m_huffmanCode[code]
             self.m_logger.info(f"{code} | {byte:0{self.m_processBits}b}")
 
-        startTime: float = time.time()
         self.DecodeSourceFile()
         endTime: float = time.time()
         
         self.m_srcFile.close()
-        self.m_logger.info(f"Done decoding. All content saved in {self.m_outFilePath}. Decoding time: {endTime - startTime}s")
+        self.m_logger.info(f"Done. Decoding time: {endTime - startTime}s")
 
     def UpdateReadBuffer(self) -> bool:
         if self.m_debug:

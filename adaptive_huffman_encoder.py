@@ -1,4 +1,4 @@
-import argparse, logging, sys, time
+import argparse, logging, os, sys, time
 
 import binary_tree, byte_writer
 
@@ -10,8 +10,6 @@ class AdaptiveHuffmanEncoder(object):
         self.m_srcMaxBufferLength: int = srcMaxBufferLength
         self.m_outMaxBufferLength: int = outMaxBufferLength
         self.m_treeReconstructionInterval: int = treeReconstructionInterval
-
-        self.m_tree: binary_tree.AdaptiveHuffmanTree = binary_tree.AdaptiveHuffmanTree(treeReconstructionInterval)
 
         self.m_debug: bool = debug
         
@@ -26,25 +24,37 @@ class AdaptiveHuffmanEncoder(object):
         endTime: float = time.time()
         
         self.m_logger.info(f"Done. Encoding time: {endTime - startTime}s")
+        srcFileSize: int = os.stat(self.m_srcFilePath).st_size
+        outFileSize: int = os.stat(self.m_outFilePath).st_size
+        print(f"'{self.m_srcFilePath}' size: {srcFileSize}B, {round(srcFileSize / 1024, 3)}Kb, {round(srcFileSize / (1024 ** 2), 3)}Mb")
+        print(f"'{self.m_outFilePath}' size: {outFileSize}B, {round(outFileSize / 1024, 3)}Kb, {round(outFileSize / (1024 ** 2), 3)}Mb")
+        print(f"Compression ratio: {srcFileSize / outFileSize}")
 
     def __Encode(self) -> None:
+        tree: binary_tree.AdaptiveHuffmanTree = binary_tree.AdaptiveHuffmanTree(self.m_treeReconstructionInterval)
         byteWriter: byte_writer.ByteWriter = byte_writer.ByteWriter(self.m_debug)
         paddingZeros: int = 0
 
+        ###### FIRST BYTE INFO ######
+        # Tree reconstruction interval value. 5 bits. Max value 32
+        self.m_treeReconstructionInterval -= 1
+        byteWriter.WriteBitsFromByte(self.m_treeReconstructionInterval, 5)
+        
         # Leaving space for padding zeros amount at the end of file. Max value 7 (0b111)
         for _ in range(3):
             byteWriter.WriteBit(0)
+        #############################
 
         with open(self.m_outFilePath, "wb") as outFile:
             with open(self.m_srcFilePath, "rb") as srcFile:
                 while (buffer := srcFile.read(self.m_srcMaxBufferLength)) != b'':
                     for byte in buffer:
-                        code: str = self.m_tree.GetHuffmanCode(byte)
+                        code: str = tree.GetHuffmanCode(byte)
 
                         if self.m_debug:
                             self.m_logger.debug(f"Got '{chr(byte)}' ({byte:08b}). Huffman code: {code}")
 
-                        self.m_tree.AddSymbol(byte)
+                        tree.AddSymbol(byte)
 
                         byteWriter.WriteBitsFromByte(int(code, 2), len(code))
 
@@ -70,7 +80,7 @@ class AdaptiveHuffmanEncoder(object):
                 if self.m_debug:
                     self.m_logger.debug(f"First byte: {firstByte:08b}")
                 
-                firstByte |= paddingZeros << 5
+                firstByte |= paddingZeros
                 
                 if self.m_debug:
                     self.m_logger.debug(f"Updated to: {firstByte:08b}")
@@ -91,7 +101,7 @@ def main():
     reconstructionInterval: int = args.reconstructionInterval
     logLevel: int = args.logLevel
 
-    if reconstructionInterval <= 0:
+    if reconstructionInterval <= 0 or reconstructionInterval > 32:
         raise Exception("Bad reconstructionInterval")
     
     if logLevel <= 0 or logLevel > 5:

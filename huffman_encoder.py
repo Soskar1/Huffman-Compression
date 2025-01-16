@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 import binary_tree, byte_analyzer, byte_reader, byte_writer
-import argparse, io, logging, sys, time
+import argparse, io, logging, os, sys, time
 
 class HuffmanEncoder(object):
     def __init__(self, srcFilePath: str, outFilePath: str, processBits: int, srcMaxBufferLength: int = 1024, outMaxBufferLength: int = 1024, debug: bool = False):
@@ -26,6 +26,7 @@ class HuffmanEncoder(object):
         self.m_logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def Run(self) -> None:
+        startTime: float = time.time()
         self.AnalyzeSourceFile()
 
         if self.m_debug:
@@ -43,10 +44,15 @@ class HuffmanEncoder(object):
             code = self.m_huffmanCode[byte]
             self.m_logger.info(f"{byte} | {code}")
         
-        startTime: float = time.time()
         self.Encode()
         endTime: float = time.time()
-        self.m_logger.info(f"Encoder ended his job! Encoding time: {endTime - startTime}s")
+        
+        self.m_logger.info(f"Done. Encoding time: {endTime - startTime}s")
+        srcFileSize: int = os.stat(self.m_srcFilePath).st_size
+        outFileSize: int = os.stat(self.m_outFilePath).st_size
+        print(f"'{self.m_srcFilePath}' size: {srcFileSize}B, {round(srcFileSize / 1024, 3)}Kb, {round(srcFileSize / (1024 ** 2), 3)}Mb")
+        print(f"'{self.m_outFilePath}' size: {outFileSize}B, {round(outFileSize / 1024, 3)}Kb, {round(outFileSize / (1024 ** 2), 3)}Mb")
+        print(f"Compression ratio: {srcFileSize / outFileSize}")
 
     def AnalyzeSourceFile(self) -> None:
         self.m_logger.info(f"Analyzing {self.m_srcFilePath}...")

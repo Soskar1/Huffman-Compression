@@ -1,1 +1,0 @@
-python huffman_decoder.py %1 %2
